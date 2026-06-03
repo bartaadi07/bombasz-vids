@@ -271,17 +271,32 @@ function buildVideoPlayer(container, src, trackTpl) {
     fsBtn.querySelector('.icon-fs-exp').style.display = fs ? 'none'  : 'block';
     fsBtn.querySelector('.icon-fs-col').style.display = fs ? 'block' : 'none';
   }
-  fsBtn.addEventListener('click', toggleFullscreen);
-  document.addEventListener('fullscreenchange', () => {
-    const fs = !!document.fullscreenElement;
-    updateFSIcons(fs);
-    document.getElementById('playerModalInner').classList.toggle('fullscreen', fs);
-    const so = document.getElementById('cpSubOverlay');
-    if (so) {
-      if (fs) document.getElementById('playerModalInner').appendChild(so);
-      else wrapper.appendChild(so);
+fsBtn.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', () => {
+  const fs = !!document.fullscreenElement;
+  updateFSIcons(fs);
+  document.getElementById('playerModalInner').classList.toggle('fullscreen', fs);
+  const so = document.getElementById('cpSubOverlay');
+  if (so) {
+    if (fs) document.getElementById('playerModalInner').appendChild(so);
+    else wrapper.appendChild(so);
+  }
+
+  // JAVÍTÁS: Mobil elforgatás kezelése
+  if (fs) {
+    // Ha teljes képernyőre lépett, elforgatjuk fekvőbe
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(err => {
+        console.warn("A tájolás zárolása nem sikerült (pl. nem mobil vagy nincs HTTPS):", err);
+      });
     }
-  });
+  } else {
+    // Ha kilépett, feloldjuk a zárolást, hogy visszaálljon az eredeti állapot
+    if (screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
+    }
+  }
+});
 
   // ── VTT felirat logika ────────────────────────────────────────────────────
   if (video.textTracks.length > 0) {
