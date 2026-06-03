@@ -19,7 +19,7 @@ async function openPlayer(btn) {
   document.getElementById('playerModal').classList.add('active');
   document.body.style.overflow = 'hidden';
 
-  // JAVÍTÁS: Virtuális előzmény létrehozása az Android vissza gombhoz
+  // Virtuális előzmény létrehozása az Android vissza gombhoz
   history.pushState({ playerOpen: true }, '');
 
   const container = document.getElementById('playerContainer');
@@ -178,7 +178,13 @@ function buildVideoPlayer(container, src, trackTpl) {
     if (e.target === overlay || e.target === centerBtn || centerBtn.contains(e.target)) togglePlay();
   });
   playBtn.addEventListener('click', togglePlay);
-  closeBtn.addEventListener('click', () => closePlayer(false)); // Módosítva, hogy kezelje az X-szel bezárást
+  closeBtn.addEventListener('click', () => closePlayer(false));
+
+  // JAVÍTÁS: Dupla kattintás az overlay-re -> Fullscreen ki/be kapcsolás
+  overlay.addEventListener('dblclick', e => {
+    e.preventDefault();
+    toggleFullscreen();
+  });
 
   // Hibakezelés
   video.addEventListener('error', () => {
@@ -247,6 +253,18 @@ function buildVideoPlayer(container, src, trackTpl) {
   });
   volSlider.addEventListener('input', () => { video.volume = parseFloat(volSlider.value); video.muted = false; });
 
+  // JAVÍTÁS: VLC stílusú hangerőállítás egérgörgővel a lejátszó felett
+  wrapper.addEventListener('wheel', e => {
+    e.preventDefault(); // Megakadályozza az oldal görgetését, miközben a videón vagyunk
+    const step = 0.05;  // 5%-os lépésköz
+    if (e.deltaY < 0) {
+      video.volume = Math.min(1, video.volume + step); // Görgetés fel -> Hangerő fel
+    } else {
+      video.volume = Math.max(0, video.volume - step); // Görgetés le -> Hangerő le
+    }
+    video.muted = false; // Ha le volt némítva, görgetésre feloldja
+  }, { passive: false });
+
   // ── Controls auto-hide ────────────────────────────────────────────────────
   let hideTimer;
   function showControls() {
@@ -285,7 +303,6 @@ function buildVideoPlayer(container, src, trackTpl) {
       else wrapper.appendChild(so);
     }
 
-    // JAVÍTÁS: Automatikus fektetett mód mobil eszközökön fullscreen esetén
     if (fs) {
       if (screen.orientation && screen.orientation.lock) {
         screen.orientation.lock('landscape').catch(err => {
@@ -344,7 +361,6 @@ function buildVideoPlayer(container, src, trackTpl) {
 }
 
 // ── Bezárás ───────────────────────────────────────────────────────────────────
-// JAVÍTÁS: Bekerült egy flag, hogy tudjuk, honnan jött a bezárási esemény
 function closePlayer(fromPopState = false) {
   if (document.fullscreenElement) document.exitFullscreen();
   clearInterval(_subtitleInterval);
@@ -357,7 +373,6 @@ function closePlayer(fromPopState = false) {
   document.getElementById('playerModalInner').classList.remove('fullscreen');
   document.body.style.overflow = '';
 
-  // JAVÍTÁS: Ha nem a vissza gombbal, hanem az X-szel zárták be, töröljük a virtuális előzményt
   if (!fromPopState && history.state && history.state.playerOpen) {
     history.back();
   }
@@ -382,7 +397,6 @@ document.getElementById('playerModal').addEventListener('click', function(e) {
   if (e.target === this) closePlayer(false);
 });
 
-// JAVÍTÁS: Elkapjuk a telefon vissza gombját (popstate), és csak a modalt zárjuk be
 window.addEventListener('popstate', function(e) {
   const modal = document.getElementById('playerModal');
   if (modal && modal.classList.contains('active')) {
