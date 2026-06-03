@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BombaszVids</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;1,400&family=Barlow:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="header-inner">
+            <div class="header-brand">
+                <span class="logo-main">Bombasz</span><span class="logo-accent">Vids</span>
+            </div>
+            <div class="header-search-wrap">
+                <div class="header-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="searchInput" placeholder="Keresés…" autocomplete="off" spellcheck="false">
+                    <button class="search-clear" id="searchClear" aria-label="Törlés">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="header-stripe"></div>
+    </header>
+
+    <main>
+        <div id="noResults" class="no-results" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>Nincs találat</span>
+        </div>
+
+        <div class="cards-grid" id="cardsGrid">
+
+            <!-- CHAINSAW MAN -->
+            <div class="card" data-search="chainsaw man reze arc mappa akció anime film 2025" onclick="openDetail('csm')">
+                <div class="card-poster poster-csm">
+                    <img src="covers/chainsaw.jpg" alt="Chainsaw Man cover" onerror="this.style.display='none'">
+                    <div class="poster-placeholder">
+                        <div class="poster-title-art">CHAINSAW<br>MAN</div>
+                    </div>
+                    <div class="poster-badge">Film</div>
+                    <div class="poster-year">2025</div>
+                </div>
+                <div class="card-info">
+                    <div class="card-title">Chainsaw Man the Movie: Reze Arc</div>
+                    <div class="card-subtitle"><em></em></div>
+                    <div class="card-tags">
+                        <span class="tag">Akció</span>
+                        <span class="tag">Anime</span>
+                    </div>
+                    <p class="card-desc">Chainsaw Man film.</p>
+                    <div class="card-sub-entry">
+                        <div class="sub-entry-label">
+                            <span class="sub-dot"></span>Magyar felirat
+                        </div>
+                        <a class="sub-file-btn" href="srt/chainsaw.srt" download onclick="event.stopPropagation()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+                            SRT
+                        </a>
+                    </div>                </div>
+                <template class="video-tracks">
+                    <track kind="subtitles" src="vtt/chainsaw.vtt" srclang="hu" label="Magyar" default>
+                </template>
+            </div>
+
+            <!-- EVANGELION -->
+            <div class="card" data-search="evangelion end of neon genesis gainax dráma anime film 1997" onclick="openDetail('eva')">
+                <div class="card-poster poster-eva">
+                    <img src="covers/evangelion.jpg" alt="End of Evangelion cover" onerror="this.style.display='none'">
+                    <div class="poster-placeholder">
+                        <div class="poster-title-art">END OF<br>EVANGELION</div>
+                    </div>
+                    <div class="poster-badge">Film</div>
+                    <div class="poster-year">1997</div>
+                </div>
+                <div class="card-info">
+                    <div class="card-title">The End of Evangelion</div>
+                    <div class="card-subtitle"><em>Neon Genesis Evangelion</em></div>
+                    <div class="card-tags">
+                        <span class="tag">Dráma</span>
+                        <span class="tag">Anime</span>
+                    </div>
+                    <p class="card-desc">Nem az én feliratom — időzítés javítva. Ha te vagy a fordító, keress fel!</p>
+                    <div class="card-sub-entry">
+                        <div class="sub-entry-label">
+                            <span class="sub-dot"></span>Magyar felirat
+                        </div>
+                        <a class="sub-file-btn" href="srt/end.of.evangelion.srt" download onclick="event.stopPropagation()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+                            SRT
+                        </a>
+                    </div>                </div>
+                <template class="video-tracks">
+                    <track kind="subtitles" src="vtt/end.of.evangelion.vtt" srclang="hu" label="Magyar" default>
+                </template>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-inner">
+            <span class="footer-logo">Bombasz<span>Vids</span></span>
+            <div class="footer-mid">dc: bartaadi</div>
+        </div>
+    </footer>
+
+    <!-- DETAIL OVERLAY -->
+    <div class="detail-overlay" id="detailOverlay">
+        <div class="detail-page" id="detailPage">
+            <div class="detail-hero" id="detailHero">
+                <div class="detail-hero-art" id="detailHeroArt"></div>
+                <div class="detail-hero-gradient"></div>
+                <button class="detail-back" onclick="closeDetail(false); history.back()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    Vissza
+                </button>
+            </div>
+            <div class="detail-content">
+                <div class="detail-left">
+                    <div class="detail-poster" id="detailPoster"></div>
+                    <button class="detail-poster-play" id="detailPosterPlay">
+                        <svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+                        Megtekintés
+                    </button>
+                </div>
+                <div class="detail-right">
+                    <div class="detail-badge-row" id="detailBadges"></div>
+                    <h1 class="detail-title" id="detailTitle"></h1>
+                    <div class="detail-sub-title" id="detailSubTitle"></div>
+                    <p class="detail-desc" id="detailDesc"></p>
+                    <div class="detail-meta-row" id="detailMeta"></div>
+                    <div class="detail-section-label">Elérhető feliratok</div>
+                    <div class="detail-subs" id="detailSubs"></div>
+                    <div class="detail-section-label">Videó forrás</div>
+                    <div class="detail-source" id="detailSource"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PLAYER MODAL -->
+    <div class="modal-overlay" id="playerModal">
+        <div class="modal" id="playerModalInner">
+            <div class="modal-body">
+                <div id="playerContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="detail.js"></script>
+    <script>
+        // Keresés
+        const searchInput = document.getElementById('searchInput');
+        const searchClear = document.getElementById('searchClear');
+        const cards = document.querySelectorAll('.card');
+        const noResults = document.getElementById('noResults');
+
+        function doSearch() {
+            const q = searchInput.value.trim().toLowerCase();
+            searchClear.style.opacity = q ? '1' : '0';
+            searchClear.style.pointerEvents = q ? 'auto' : 'none';
+            let visible = 0;
+            cards.forEach(card => {
+                const haystack = card.dataset.search + ' ' + card.querySelector('.card-title').textContent.toLowerCase();
+                const match = !q || haystack.includes(q);
+                card.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            noResults.style.display = visible === 0 ? 'flex' : 'none';
+        }
+
+        searchInput.addEventListener('input', doSearch);
+        searchClear.addEventListener('click', () => { searchInput.value = ''; doSearch(); searchInput.focus(); });
+
+        function openDetailAndPlay(id) {
+            openDetail(id);
+            // kis delay hogy az overlay animáció lefusson
+            setTimeout(() => openPlayerFromDetail(id), 350);
+        }
+    </script>
+</body>
+</html>
