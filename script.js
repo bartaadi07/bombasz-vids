@@ -405,3 +405,27 @@ document.addEventListener('keydown', function(e) {
     if (cc && cc.style.display !== 'none') toggleSubtitle();
   }
 });
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+});
+
+document.addEventListener('keydown', function(e) {
+  
+  if (e.key === 'F12') {
+    e.preventDefault();
+    return false;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
+    e.preventDefault();
+    return false;
+  }
+
+  const isDevToolsCombo = (e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase());
+  const isMacDevToolsCombo = e.metaKey && e.altKey && ['i', 'j', 'c'].includes(e.key.toLowerCase());
+
+  if (isDevToolsCombo || isMacDevToolsCombo) {
+    e.preventDefault();
+    return false;
+  }
+});
