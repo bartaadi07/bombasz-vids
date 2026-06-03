@@ -10,7 +10,7 @@ async function openPlayer(btn) {
   const title     = btn.getAttribute('data-title');
   const card      = btn.closest('.card');
   const trackTpl  = card ? card.querySelector('template.video-tracks') : null;
-
+  const API_BASE = 'https://bombasz-vids.onrender.com';
   // Modal megnyitás + loading
   document.getElementById('playerModal').classList.add('active');
   document.body.style.overflow = 'hidden';
