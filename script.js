@@ -21,16 +21,12 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
   const container = document.getElementById('playerContainer');
   container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Betöltés…</span></div>';
 
- try {
-    // 1. JAVÍTÁS: Beillesztettük az API_BASE-t a fetch elejére
+try {
     const res  = await fetch(API_BASE + '/api/resolve?url=' + encodeURIComponent(videoUrl));
     const data = await res.json();
 
     if (!data.proxyUrl) throw new Error(data.error || 'Ismeretlen hiba');
 
-    // 2. JAVÍTÁS: A videó lejátszónak is odaadjuk az API_BASE-t!
-    // Mivel a backend kódod relatív útvonalat ad vissza (/api/stream...), 
-    // enélkül a böngésző a GitHubon keresné a videofájlt.
     buildVideoPlayer(container, API_BASE + data.proxyUrl, trackTpl);
   } catch (err) {
     container.innerHTML = `<div class="player-loading"><span style="color:#f66">Hiba: ${err.message}</span></div>`;
