@@ -375,3 +375,40 @@ document.addEventListener('keydown', function(e) {
     if (cc && cc.style.display !== 'none') toggleSubtitle();
   }
 });
+// Függvény a teljes képernyő és a fekvő tájolás bekapcsolásához
+async function goFullscreenLandscape() {
+  const element = document.documentElement; // Az egész oldal (vagy pl. egy specifikus <video> elem)
+
+  try {
+    // 1. Belépés teljes képernyős módba
+    if (element.requestFullscreen) {
+      await element.requestFullscreen();
+    } else if (element.webkitRequestFullscreen) { /* Safari / iOS */
+      await element.webkitRequestFullscreen();
+    }
+
+    // 2. Kijelző elforgatása fekvő (landscape) módba és zárolása
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock('landscape');
+    }
+    
+  } catch (error) {
+    console.error("Nem sikerült a váltás:", error);
+  }
+}
+
+// Függvény a kilépéshez és a zárolás feloldásához
+async function exitFullscreenLandscape() {
+  try {
+    if (document.exitFullscreen) {
+      await document.exitFullscreen();
+    }
+
+    // Zárolás feloldása, hogy visszaálljon az eredeti működés
+    if (screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
+    }
+  } catch (error) {
+    console.error("Hiba a kilépés során:", error);
+  }
+}

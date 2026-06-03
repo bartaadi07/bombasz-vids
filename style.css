@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   BOMBASZ SUBS — AMOLED Netflix-stílus v11 (mobile-first responsive)
+   BOMBASZ SUBS — AMOLED Netflix-stílus v11.1 (Fully Responsive & Notch Fix)
    ══════════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -29,15 +29,26 @@
   --p-muted:   rgba(224,224,234,0.38);
 }
 
+/* JAVÍTÁS: Globális overflow-x tiltás mindkét fő konténeren */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+html { 
+  scroll-behavior: smooth; 
+  overflow-x: hidden;
+  width: 100%;
+}
 body {
   font-family: var(--f-body);
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
+  width: 100%;
+  position: relative;
   -webkit-font-smoothing: antialiased;
+
+  /* JAVÍTÁS: Flexbox elrendezés */
+  display: flex;
+  flex-direction: column;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -48,6 +59,7 @@ header {
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 50;
   backdrop-filter: blur(16px);
+  width: 100%;
 }
 .header-inner {
   max-width: 1280px; margin: 0 auto;
@@ -67,6 +79,7 @@ header {
 }
 .header-search-wrap {
   flex: 1; display: flex; justify-content: flex-end;
+  min-width: 0;
 }
 .header-search {
   position: relative;
@@ -89,10 +102,10 @@ header {
 }
 .header-search:focus-within > svg { stroke: var(--text-2); }
 .header-search input {
-  flex: 1;
+  width: 100%;
   background: transparent; border: none; outline: none;
   font-family: var(--f-body); font-size: 0.88rem;
-  color: var(--text); padding: 10px 10px 10px 10px;
+  color: var(--text); padding: 10px;
   caret-color: var(--accent);
 }
 .header-search input::placeholder { color: var(--text-3); }
@@ -142,6 +155,7 @@ header {
   position: relative;
   overflow: hidden;
   width: 100%;
+  min-width: 0; /* JAVÍTÁS: Megakadályozza, hogy a belső flex/text elemek szétnyomják a kártyát */
 }
 .card:nth-child(2) { animation-delay: 0.07s; }
 .card:hover {
@@ -247,6 +261,7 @@ header {
   padding: 14px 16px 16px;
   display: flex; flex-direction: column; gap: 6px;
   flex: 1;
+  min-width: 0;
 }
 .card-title {
   font-family: var(--f-cond);
@@ -282,6 +297,7 @@ header {
   font-family: var(--f-mono); font-size: 0.53rem;
   letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--text-3);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis;
 }
 .sub-dot {
   width: 5px; height: 5px;
@@ -301,8 +317,6 @@ header {
 }
 .sub-file-btn svg { width: 10px; height: 10px; flex-shrink: 0; }
 .sub-file-btn:hover { color: var(--white); border-color: var(--accent); background: var(--accent-dim); }
-
-
 
 /* ══════════════════════════════════════════════════════════════════════════
    DETAIL OVERLAY
@@ -514,7 +528,14 @@ header {
 /* ══════════════════════════════════════════════════════════════════════════
    FOOTER
    ══════════════════════════════════════════════════════════════════════════ */
-footer { border-top: 1px solid var(--border); padding: 20px 48px; }
+footer { 
+  border-top: 1px solid var(--border); 
+  padding: 20px 48px; 
+  width: 100%; 
+
+  /* JAVÍTÁS: Ez tolja le fixen az oldal aljára */
+  margin-top: auto; 
+}
 .footer-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 20px; }
 .footer-logo { font-family: var(--f-display); font-size: 1rem; color: var(--text-3); letter-spacing: 0.05em; }
 .footer-logo span { color: var(--accent); margin-left: 3px; }
@@ -544,9 +565,24 @@ footer { border-top: 1px solid var(--border); padding: 20px 48px; }
   from { opacity: 0; transform: scale(0.97) translateY(10px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
-.modal.fullscreen { max-width: 100%; width: 100%; height: 100%; border: none; display: flex; flex-direction: column; }
+
+/* JAVÍTÁS: Fullscreen Notch és teljes kijelzős szélek támogatása */
+.modal.fullscreen { 
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  border: none !important; 
+  display: flex; 
+  flex-direction: column; 
+  z-index: 999999 !important;
+  background: #000;
+}
 .modal-body { position: relative; width: 100%; padding-top: 56.25%; background: #000; }
-.modal.fullscreen .modal-body { flex: 1; padding-top: 0; }
+.modal.fullscreen .modal-body { flex: 1; padding-top: 0; height: 100%; }
 #playerContainer { position: absolute; inset: 0; }
 #playerContainer iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
 
@@ -592,7 +628,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 48px; }
   pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
 }
-.cp-tap-left  { left: 0; }
+.cp-tap-left   { left: 0; }
 .cp-tap-right { right: 0; }
 .cp-tap-ripple {
   width: 64px; height: 64px;
@@ -609,8 +645,16 @@ footer { border-top: 1px solid var(--border); padding: 20px 48px; }
 }
 .cp-tap-ripple svg { width: 22px; height: 22px; fill: #fff; }
 
+/* JAVÍTÁS: Alap vezérlők safe-area kitöltése */
 .cp-controls { position: absolute; bottom: 0; left: 0; right: 0; padding: 0 0 8px; background: linear-gradient(transparent, rgba(0,0,0,0.96)); opacity: 0; transition: opacity 0.22s; z-index: 10; pointer-events: none; }
 .cp-controls.visible { opacity: 1; pointer-events: auto; }
+
+/* JAVÍTÁS: Fullscreen alatt a gombok nem lógnak be a notch / home indicator alá */
+.modal.fullscreen .cp-controls {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  padding-left: calc(12px + env(safe-area-inset-left, 0px)) !important;
+  padding-right: calc(12px + env(safe-area-inset-right, 0px)) !important;
+}
 
 .cp-progress-wrap { position: relative; height: 28px; margin: 0 14px 2px; cursor: pointer; display: flex; align-items: center; touch-action: none; }
 .cp-progress-bg, .cp-progress-fill { position: absolute; left: 0; height: 3px; pointer-events: none; border-radius: 2px; }
@@ -655,10 +699,18 @@ footer { border-top: 1px solid var(--border); padding: 20px 48px; }
 
 .subtitle-overlay { position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); z-index: 20; pointer-events: none; text-align: center; max-width: 86%; line-height: 1.85; font-size: 1.1rem; isolation: isolate; }
 .subtitle-overlay span { font-family: var(--f-body); font-size: inherit; color: #fff; background: rgba(0,0,0,0.78); padding: 2px 10px; box-decoration-break: clone; -webkit-box-decoration-break: clone; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
-:fullscreen .subtitle-overlay, :-webkit-full-screen .subtitle-overlay { position: fixed !important; bottom: 8% !important; left: 50% !important; transform: translateX(-50%) !important; z-index: 2147483647 !important; }
+
+/* JAVÍTÁS: Felirat pozicionálás notch és safe-area figyelembevételével */
+:fullscreen .subtitle-overlay, :-webkit-full-screen .subtitle-overlay { 
+  position: fixed !important; 
+  bottom: calc(8% + env(safe-area-inset-bottom, 0px)) !important; 
+  left: 50% !important; 
+  transform: translateX(-50%) !important; 
+  z-index: 2147483647 !important; 
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE
+   RESPONSIVE OVERRIDES
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* Tablet */
@@ -698,24 +750,48 @@ footer { border-top: 1px solid var(--border); padding: 20px 48px; }
     border: none;
     display: flex; flex-direction: column;
     max-width: 100%; height: auto;
-    /* vertically center in viewport */
     margin: auto;
     align-self: center;
   }
   .modal-body { padding-top: 56.25%; }
 }
 
-/* Mobile portrait */
+/* Mobile portrait - Extra szigorú fixek overflow ellen */
 @media (max-width: 480px) {
+  /* JAVÍTÁS: A fejléc egymás alá rakja a logót és a keresőt, ha túl kicsi a kijelző, így nem lóg ki */
+  .header-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .header-brand {
+    text-align: center;
+  }
+  .header-search-wrap {
+    width: 100%;
+    justify-content: center;
+  }
+  .header-search {
+    max-width: 100%;
+    width: 100%;
+  }
+
   .cards-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px; padding: 14px 12px 60px;
     justify-items: center;
+    width: 100%;
   }
   .card { width: 100%; }
   .card-info { padding: 10px 12px 12px; gap: 5px; }
   .card-title { font-size: 0.9rem; }
   .card-desc { display: none; }
+  
+  /* JAVÍTÁS: Túl hosszú letöltés gombok zsugorítása mobilra */
+  .sub-entry-label { font-size: 0.48rem; }
+  .sub-file-btn { padding: 4px 6px; font-size: 0.44rem; }
+
   .detail-left { width: 130px; }
   .detail-title { font-size: 1.8rem; }
   .detail-desc { font-size: 0.85rem; }
@@ -732,6 +808,6 @@ footer { border-top: 1px solid var(--border); padding: 20px 48px; }
   .cards-grid { gap: 8px; padding: 10px 10px 50px; }
 }
 
-/* Fullscreen subtitle fix */
+/* Fullscreen fix kényszerítés */
 .modal.fullscreen { position: fixed; inset: 0; max-width: 100%; height: 100%; border: none; }
 .modal.fullscreen .modal-body { position: absolute; inset: 0; padding-top: 0; }
