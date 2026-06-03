@@ -1,6 +1,5 @@
-// Használat: node script.js <url>
-// Pl: node script.js "https://videa.hu/player?v=d5OOor9NDgsG1pTi"
-//     node script.js "https://vkvideo.ru/video-234646183_456239019"
+//node script.js "https://videa.hu/player?v=d5OOor9NDgsG1pTi"
+//node script.js "https://vkvideo.ru/video-234646183_456239019"
 
 const { exec } = require('child_process');
 const path = require('path');

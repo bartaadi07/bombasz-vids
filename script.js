@@ -15,11 +15,9 @@ async function openPlayer(btn) {
     ? 'http://localhost:3000' 
     : 'https://api.bombasz.hu';
 
-  // Modal megnyitás + loading
   document.getElementById('playerModal').classList.add('active');
   document.body.style.overflow = 'hidden';
 
-  // Virtuális előzmény létrehozása az Android vissza gombhoz
   history.pushState({ playerOpen: true }, '');
 
   const container = document.getElementById('playerContainer');
@@ -130,12 +128,10 @@ function buildVideoPlayer(container, src, trackTpl) {
 
   _currentVideo = video;
 
-  // ── VTT track-ek beillesztése ─────────────────────────────────────────────
   if (trackTpl) {
     trackTpl.content.querySelectorAll('track').forEach(t => video.appendChild(t.cloneNode(true)));
   }
 
-  // ── Felirat pozíció / méret ───────────────────────────────────────────────
   function applySubStyle() {
     subOverlay.style.bottom   = _subBottom + '%';
     subOverlay.style.fontSize = (_subSize / 100 * 1.1) + 'rem';
@@ -163,7 +159,6 @@ function buildVideoPlayer(container, src, trackTpl) {
     if (!open) showControls();
   });
 
-  // ── Play / Pause ──────────────────────────────────────────────────────────
   function setPlayIcons(playing) {
     wrapper.querySelectorAll('.icon-play') .forEach(i => i.style.display = playing ? 'none'  : 'block');
     wrapper.querySelectorAll('.icon-pause').forEach(i => i.style.display = playing ? 'block' : 'none');
@@ -180,13 +175,12 @@ function buildVideoPlayer(container, src, trackTpl) {
   playBtn.addEventListener('click', togglePlay);
   closeBtn.addEventListener('click', () => closePlayer(false));
 
-  // JAVÍTÁS: Dupla kattintás az overlay-re -> Fullscreen ki/be kapcsolás
   overlay.addEventListener('dblclick', e => {
     e.preventDefault();
     toggleFullscreen();
   });
 
-  // Hibakezelés
+
   video.addEventListener('error', () => {
     const err = video.error;
     const codes = { 1:'ABORTED', 2:'NETWORK', 3:'DECODE', 4:'SRC_NOT_SUPPORTED' };
@@ -197,7 +191,6 @@ function buildVideoPlayer(container, src, trackTpl) {
     video.play().catch(e => console.warn('[video] play() elutasítva:', e.message));
   }, { once: true });
 
-  // ── Progress ──────────────────────────────────────────────────────────────
   function fmtTime(s) {
     const totalMin = Math.floor(s / 60);
     const sec      = String(Math.floor(s % 60)).padStart(2, '0');
@@ -243,7 +236,6 @@ function buildVideoPlayer(container, src, trackTpl) {
   document.addEventListener('touchmove',      e => { if (seeking) doSeek(e.touches[0].clientX); }, { passive: true });
   document.addEventListener('touchend',       () => { seeking = false; });
 
-  // ── Hang ──────────────────────────────────────────────────────────────────
   muteBtn.addEventListener('click', () => { video.muted = !video.muted; });
   video.addEventListener('volumechange', () => {
     const muted = video.muted || video.volume === 0;
@@ -253,19 +245,17 @@ function buildVideoPlayer(container, src, trackTpl) {
   });
   volSlider.addEventListener('input', () => { video.volume = parseFloat(volSlider.value); video.muted = false; });
 
-  // JAVÍTÁS: VLC stílusú hangerőállítás egérgörgővel a lejátszó felett
   wrapper.addEventListener('wheel', e => {
-    e.preventDefault(); // Megakadályozza az oldal görgetését, miközben a videón vagyunk
-    const step = 0.05;  // 5%-os lépésköz
+    e.preventDefault(); 
+    const step = 0.05;  
     if (e.deltaY < 0) {
-      video.volume = Math.min(1, video.volume + step); // Görgetés fel -> Hangerő fel
+      video.volume = Math.min(1, video.volume + step); 
     } else {
-      video.volume = Math.max(0, video.volume - step); // Görgetés le -> Hangerő le
+      video.volume = Math.max(0, video.volume - step); 
     }
-    video.muted = false; // Ha le volt némítva, görgetésre feloldja
+    video.muted = false; 
   }, { passive: false });
 
-  // ── Controls auto-hide ────────────────────────────────────────────────────
   let hideTimer;
   function showControls() {
     controls.classList.add('visible');
@@ -287,7 +277,6 @@ function buildVideoPlayer(container, src, trackTpl) {
   });
   showControls();
 
-  // ── Fullscreen + Tájolás zárolása ─────────────────────────────────────────
   function updateFSIcons(fs) {
     fsBtn.querySelector('.icon-fs-exp').style.display = fs ? 'none'  : 'block';
     fsBtn.querySelector('.icon-fs-col').style.display = fs ? 'block' : 'none';
@@ -316,7 +305,6 @@ function buildVideoPlayer(container, src, trackTpl) {
     }
   });
 
-  // ── VTT felirat logika ────────────────────────────────────────────────────
   if (video.textTracks.length > 0) {
     function initSubtitles() {
       const tt = video.textTracks[0];
@@ -360,7 +348,6 @@ function buildVideoPlayer(container, src, trackTpl) {
   }
 }
 
-// ── Bezárás ───────────────────────────────────────────────────────────────────
 function closePlayer(fromPopState = false) {
   if (document.fullscreenElement) document.exitFullscreen();
   clearInterval(_subtitleInterval);
@@ -392,7 +379,6 @@ function toggleFullscreen() {
   else document.exitFullscreen();
 }
 
-// ── Globális eventek ──────────────────────────────────────────────────────────
 document.getElementById('playerModal').addEventListener('click', function(e) {
   if (e.target === this) closePlayer(false);
 });

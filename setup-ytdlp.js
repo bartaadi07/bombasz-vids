@@ -1,4 +1,3 @@
-// setup-ytdlp.js — Render build lépésben fut, letölti a Linux yt-dlp binárist
 const https = require('https');
 const fs    = require('fs');
 const path  = require('path');

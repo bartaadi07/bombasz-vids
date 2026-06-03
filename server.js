@@ -17,7 +17,6 @@ const MIME = {
   '.png':  'image/png',
 };
 
-// ── yt-dlp elérési út (Linux vagy Windows fallback) ───────────────────────────
 function findYtdlp() {
   const localLinux   = path.join(__dirname, 'yt-dlp');
   const localWindows = path.join(__dirname, 'yt-dlp.exe');
@@ -25,7 +24,7 @@ function findYtdlp() {
   if (fs.existsSync(localLinux))   return `"${localLinux}"`;
   if (fs.existsSync(localWindows)) return `"${localWindows}"`;
 
-  // Ha sem helyi, megpróbáljuk a PATH-ból
+
   try { execSync('yt-dlp --version', { stdio: 'ignore' }); return 'yt-dlp'; } catch {}
   return null;
 }
@@ -37,7 +36,6 @@ if (!ytdlp) {
 }
 console.log('[init] yt-dlp:', ytdlp);
 
-// ── URL cache (50 perces TTL) ─────────────────────────────────────────────────
 const urlCache  = new Map();
 const CACHE_TTL = 50 * 60 * 1000;
 
@@ -63,7 +61,6 @@ function getDirectUrl(videoUrl) {
   });
 }
 
-// ── Proxy redirect-követéssel ─────────────────────────────────────────────────
 function fetchWithRedirects(urlStr, rangeHeader, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
     function doRequest(currentUrl, remaining) {
@@ -147,18 +144,15 @@ function proxyStream(req, res, directUrl) {
     });
 }
 
-// ── HTTP szerver ──────────────────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  // Health check (Render igényli)
   if (url.pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     return res.end('OK');
   }
 
-  // /api/resolve
   if (url.pathname === '/api/resolve') {
     const videoUrl = url.searchParams.get('url');
     if (!videoUrl) {
@@ -178,7 +172,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // /api/stream
   if (url.pathname === '/api/stream') {
     const videoUrl = url.searchParams.get('url');
     if (!videoUrl) { res.writeHead(400); return res.end('Hiányzó url'); }
@@ -192,7 +185,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Statikus fájlok
   const filePath = path.join(__dirname, url.pathname === '/' ? 'index.html' : url.pathname);
   const ext      = path.extname(filePath);
   const mimeType = MIME[ext] || 'application/octet-stream';

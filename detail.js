@@ -1,4 +1,3 @@
-// ── Adatlap adatok ────────────────────────────────────────────────────────────
 const DETAIL_DATA = {
   csm: {
     title: 'Chainsaw Man the Movie: Reze Arc',
@@ -58,7 +57,6 @@ const DETAIL_DATA = {
   }
 };
 
-// ── Hero háttér stílusok ──────────────────────────────────────────────────────
 const HERO_STYLES = {
   'hero-csm': `background: linear-gradient(160deg, #0a0002 0%, #200407 30%, #3e080d 60%, #5c0c12 80%, #140103 100%);`,
   'hero-eva': `background: linear-gradient(160deg, #010209 0%, #020818 30%, #05102e 60%, #090e38 80%, #020410 100%);`,
@@ -69,12 +67,10 @@ const POSTER_STYLES = {
   'poster-eva-detail': `background: linear-gradient(160deg, #010209, #060d2e, #0a133e);`,
 };
 
-// ── Megnyitás ─────────────────────────────────────────────────────────────────
 function openDetail(id) {
   const d = DETAIL_DATA[id];
   if (!d) return;
 
-  // Hero — cover kép blurred háttérként
   const heroArt = document.getElementById('detailHeroArt');
   const heroBase = HERO_STYLES[d.heroClass] || '';
   heroArt.style.cssText = heroBase;
@@ -86,24 +82,20 @@ function openDetail(id) {
   heroImg.onerror = () => { heroArt.style.cssText = heroBase; };
   heroImg.src = `covers/${d.coverFile}.jpg`;
 
-  // Poster play gomb
   const posterPlayBtn = document.getElementById('detailPosterPlay');
   posterPlayBtn.onclick = () => openPlayerFromDetail(id);
 
   document.getElementById('detailOverlay').dataset.currentId = id;
 
-  // Badges
   const badgesEl = document.getElementById('detailBadges');
   badgesEl.innerHTML = d.badges.map((b, i) =>
     `<span class="detail-badge${i === 0 ? ' accent' : ''}">${b}</span>`
   ).join('');
 
-  // Szövegek
   document.getElementById('detailTitle').textContent = d.title;
   document.getElementById('detailSubTitle').textContent = d.subTitle;
   document.getElementById('detailDesc').textContent = d.desc;
 
-  // Meta
   document.getElementById('detailMeta').innerHTML = `
     <div class="detail-meta-item">
       <span class="detail-meta-label">Év</span>
@@ -119,7 +111,6 @@ function openDetail(id) {
     </div>
   `;
 
-  // Poster
   const posterEl = document.getElementById('detailPoster');
   posterEl.innerHTML = `
     <img src="covers/${d.coverFile}.jpg" alt="${d.title}" class="dpost-img"
@@ -129,7 +120,6 @@ function openDetail(id) {
     </div>
   `;
 
-  // Feliratok
   document.getElementById('detailSubs').innerHTML = d.subs.map(s => `
     <div class="detail-sub-row">
       <span class="detail-sub-lang">${s.lang}</span>
@@ -140,7 +130,6 @@ function openDetail(id) {
     </div>
   `).join('');
 
-  // Forrás
   document.getElementById('detailSource').innerHTML = `
     <a class="detail-source-link" href="${d.sourceHref}" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
@@ -148,7 +137,6 @@ function openDetail(id) {
     </a>
   `;
 
-  // Megjelenítés
   const overlay = document.getElementById('detailOverlay');
   overlay.classList.add('active');
   document.body.style.overflow = 'hidden';

@@ -1,7 +1,3 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   BOMBASZ SUBS — AMOLED Netflix-stílus v11.1 (Fully Responsive & Notch Fix)
-   ══════════════════════════════════════════════════════════════════════════ */
-
 :root {
   --bg:          #000000;
   --surface:     #0a0a0a;
@@ -29,7 +25,7 @@
   --p-muted:   rgba(224,224,234,0.38);
 }
 
-/* JAVÍTÁS: Globális overflow-x tiltás mindkét fő konténeren */
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { 
   scroll-behavior: smooth; 
@@ -45,15 +41,11 @@ body {
   width: 100%;
   position: relative;
   -webkit-font-smoothing: antialiased;
-
-  /* JAVÍTÁS: Flexbox elrendezés */
   display: flex;
   flex-direction: column;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   HEADER
-   ══════════════════════════════════════════════════════════════════════════ */
+
 header {
   background: linear-gradient(180deg, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.85) 100%);
   border-bottom: 1px solid var(--border);
@@ -123,7 +115,7 @@ header {
   background: linear-gradient(90deg, var(--accent) 0%, rgba(229,9,20,0.15) 50%, transparent 80%);
 }
 
-/* No results */
+
 .no-results {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 14px; padding: 80px 20px;
@@ -133,9 +125,7 @@ header {
 }
 .no-results svg { width: 40px; height: 40px; opacity: 0.25; }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   CARDS GRID
-   ══════════════════════════════════════════════════════════════════════════ */
+
 .cards-grid {
   max-width: 1280px; margin: 0 auto;
   padding: 40px 48px 80px;
@@ -155,7 +145,7 @@ header {
   position: relative;
   overflow: hidden;
   width: 100%;
-  min-width: 0; /* JAVÍTÁS: Megakadályozza, hogy a belső flex/text elemek szétnyomják a kártyát */
+  min-width: 0; 
 }
 .card:nth-child(2) { animation-delay: 0.07s; }
 .card:hover {
@@ -182,7 +172,6 @@ header {
   width: 100%; height: 100%; object-fit: cover; display: block;
 }
 
-/* Chainsaw Man placeholder */
 .poster-csm .poster-placeholder {
   position: absolute; inset: 0; z-index: 1;
   background: linear-gradient(160deg, #0a0002 0%, #1c0305 30%, #3a0608 60%, #5c0c12 80%, #140103 100%);
@@ -199,7 +188,6 @@ header {
   background: radial-gradient(ellipse, rgba(180,20,40,0.25) 0%, transparent 70%);
 }
 
-/* Evangelion placeholder */
 .poster-eva .poster-placeholder {
   position: absolute; inset: 0; z-index: 1;
   background: linear-gradient(160deg, #010209 0%, #020818 30%, #050e2e 60%, #08133a 80%, #020410 100%);
@@ -256,7 +244,6 @@ header {
   backdrop-filter: blur(4px);
 }
 
-/* Card info */
 .card-info {
   padding: 14px 16px 16px;
   display: flex; flex-direction: column; gap: 6px;
@@ -318,9 +305,6 @@ header {
 .sub-file-btn svg { width: 10px; height: 10px; flex-shrink: 0; }
 .sub-file-btn:hover { color: var(--white); border-color: var(--accent); background: var(--accent-dim); }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   DETAIL OVERLAY
-   ══════════════════════════════════════════════════════════════════════════ */
 .detail-overlay {
   position: fixed; inset: 0; z-index: 100;
   background: var(--bg);
@@ -337,7 +321,6 @@ header {
 }
 .detail-overlay.active .detail-page { transform: translateY(0); }
 
-/* Hero */
 .detail-hero {
   position: relative;
   height: 28vh; min-height: 160px; max-height: 280px;
@@ -373,7 +356,6 @@ header {
 .detail-back svg { width: 15px; height: 15px; }
 .detail-back:hover { color: var(--white); background: rgba(0,0,0,0.85); }
 
-/* Content */
 .detail-content {
   max-width: 1100px; margin: 0 auto;
   padding: 0 48px 80px;
@@ -382,7 +364,6 @@ header {
   position: relative; z-index: 5;
 }
 
-/* Left: poster + play btn */
 .detail-left {
   flex-shrink: 0;
   display: flex; flex-direction: column;
@@ -419,7 +400,6 @@ header {
   display: flex; align-items: center; justify-content: center;
 }
 
-/* Play gomb a poszter alatt */
 .detail-poster-play {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   width: 100%; margin-top: 24px;
@@ -433,10 +413,7 @@ header {
 }
 .detail-poster-play svg { width: 16px; height: 16px; fill: #fff; flex-shrink: 0; }
 .detail-poster-play:hover { background: #c40812; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(229,9,20,0.45); }
-
-/* Right */
 .detail-right { flex: 1; padding-top: 40px; min-width: 0; }
-
 .detail-badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .detail-badge {
   font-family: var(--f-mono); font-size: 0.5rem;
@@ -525,15 +502,11 @@ header {
 .detail-source-link svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 .detail-source-link:hover { color: var(--text-2); border-color: var(--text-3); }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   FOOTER
-   ══════════════════════════════════════════════════════════════════════════ */
+
 footer { 
   border-top: 1px solid var(--border); 
   padding: 20px 48px; 
   width: 100%; 
-
-  /* JAVÍTÁS: Ez tolja le fixen az oldal aljára */
   margin-top: auto; 
 }
 .footer-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 20px; }
@@ -542,9 +515,7 @@ footer {
 .footer-mid { flex: 1; font-family: var(--f-mono); font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); text-align: center; }
 .footer-right { font-family: var(--f-mono); font-size: 0.56rem; letter-spacing: 0.1em; color: var(--text-3); }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   PLAYER MODAL
-   ══════════════════════════════════════════════════════════════════════════ */
+
 .modal-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.96);
@@ -566,7 +537,6 @@ footer {
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* JAVÍTÁS: Fullscreen Notch és teljes kijelzős szélek támogatása */
 .modal.fullscreen { 
   position: fixed !important;
   inset: 0 !important;
@@ -596,7 +566,6 @@ footer {
 .custom-player video::-webkit-media-text-track-display { display: none !important; }
 .custom-player video::-webkit-media-text-track-container { display: none !important; }
 
-/* ── Seek feedback overlay (±5mp) ── */
 .cp-seek-feedback {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -619,7 +588,6 @@ footer {
 .cp-center-btn:hover { background: rgba(229,9,20,0.24); transform: scale(1.07); }
 .cp-center-btn svg { width: 22px; height: 22px; fill: var(--p-accent); margin-left: 2px; }
 
-/* ── Mobile side-tap zones ── */
 .cp-tap-left,
 .cp-tap-right {
   position: absolute; top: 0; bottom: 0;
@@ -645,11 +613,9 @@ footer {
 }
 .cp-tap-ripple svg { width: 22px; height: 22px; fill: #fff; }
 
-/* JAVÍTÁS: Alap vezérlők safe-area kitöltése */
 .cp-controls { position: absolute; bottom: 0; left: 0; right: 0; padding: 0 0 8px; background: linear-gradient(transparent, rgba(0,0,0,0.96)); opacity: 0; transition: opacity 0.22s; z-index: 10; pointer-events: none; }
 .cp-controls.visible { opacity: 1; pointer-events: auto; }
 
-/* JAVÍTÁS: Fullscreen alatt a gombok nem lógnak be a notch / home indicator alá */
 .modal.fullscreen .cp-controls {
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
   padding-left: calc(12px + env(safe-area-inset-left, 0px)) !important;
@@ -675,7 +641,6 @@ footer {
 .cp-btn-cc.active { color: var(--p-accent); border-color: rgba(229,9,20,0.42); }
 .cp-btn-sub-settings.active { color: var(--p-accent); }
 
-/* Seek buttons */
 .cp-btn-seek { position: relative; }
 .cp-btn-seek .seek-label {
   position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
@@ -700,7 +665,6 @@ footer {
 .subtitle-overlay { position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); z-index: 20; pointer-events: none; text-align: center; max-width: 86%; line-height: 1.85; font-size: 1.1rem; isolation: isolate; }
 .subtitle-overlay span { font-family: var(--f-body); font-size: inherit; color: #fff; background: rgba(0,0,0,0.78); padding: 2px 10px; box-decoration-break: clone; -webkit-box-decoration-break: clone; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
 
-/* JAVÍTÁS: Felirat pozicionálás notch és safe-area figyelembevételével */
 :fullscreen .subtitle-overlay, :-webkit-full-screen .subtitle-overlay { 
   position: fixed !important; 
   bottom: calc(8% + env(safe-area-inset-bottom, 0px)) !important; 
@@ -709,11 +673,7 @@ footer {
   z-index: 2147483647 !important; 
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE OVERRIDES
-   ══════════════════════════════════════════════════════════════════════════ */
 
-/* Tablet */
 @media (max-width: 960px) {
   .header-inner { padding: 12px 28px; gap: 20px; }
   .cards-grid { padding: 28px 28px 60px; gap: 18px; }
@@ -722,7 +682,6 @@ footer {
   .detail-right { padding-top: 70px; }
 }
 
-/* Mobile landscape / small tablet */
 @media (max-width: 768px) {
   .header-inner { padding: 10px 16px; gap: 12px; }
   .logo-main, .logo-accent { font-size: 1.8rem; }
@@ -735,7 +694,6 @@ footer {
   footer { padding: 14px 16px; }
   .footer-mid { display: none; }
 
-  /* Detail mobile */
   .detail-content { flex-direction: column; padding: 0 16px 60px; gap: 20px; margin-top: -80px; align-items: flex-start; }
   .detail-left { width: 160px; }
   .detail-right { padding-top: 0; width: 100%; }
@@ -743,7 +701,6 @@ footer {
   .detail-hero { height: 24vh; }
   .detail-back { top: 14px; left: 14px; padding: 7px 12px 7px 8px; font-size: 0.75rem; }
 
-  /* Player mobile */
   .modal-overlay { padding: 0; align-items: stretch; justify-content: center; }
   .modal {
     border-radius: 0;
@@ -756,9 +713,7 @@ footer {
   .modal-body { padding-top: 56.25%; }
 }
 
-/* Mobile portrait - Extra szigorú fixek overflow ellen */
 @media (max-width: 480px) {
-  /* JAVÍTÁS: A fejléc egymás alá rakja a logót és a keresőt, ha túl kicsi a kijelző, így nem lóg ki */
   .header-inner {
     flex-direction: column;
     align-items: stretch;
@@ -788,7 +743,6 @@ footer {
   .card-title { font-size: 0.9rem; }
   .card-desc { display: none; }
   
-  /* JAVÍTÁS: Túl hosszú letöltés gombok zsugorítása mobilra */
   .sub-entry-label { font-size: 0.48rem; }
   .sub-file-btn { padding: 4px 6px; font-size: 0.44rem; }
 
@@ -796,7 +750,6 @@ footer {
   .detail-title { font-size: 1.8rem; }
   .detail-desc { font-size: 0.85rem; }
 
-  /* Player touch controls */
   .cp-volume { display: none; }
   .cp-btn { min-width: 44px; min-height: 44px; padding: 10px; }
   .cp-time { font-size: 0.56rem; }
@@ -808,6 +761,5 @@ footer {
   .cards-grid { gap: 8px; padding: 10px 10px 50px; }
 }
 
-/* Fullscreen fix kényszerítés */
 .modal.fullscreen { position: fixed; inset: 0; max-width: 100%; height: 100%; border: none; }
 .modal.fullscreen .modal-body { position: absolute; inset: 0; padding-top: 0; }
