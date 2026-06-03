@@ -11,17 +11,21 @@ async function openPlayer(btn) {
   const card      = btn.closest('.card');
   const trackTpl  = card ? card.querySelector('template.video-tracks') : null;
 
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:3000' 
-  : 'https://api.bombasz.hu';
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000' 
+    : 'https://api.bombasz.hu';
+
   // Modal megnyitás + loading
   document.getElementById('playerModal').classList.add('active');
   document.body.style.overflow = 'hidden';
 
+  // JAVÍTÁS: Virtuális előzmény létrehozása az Android vissza gombhoz
+  history.pushState({ playerOpen: true }, '');
+
   const container = document.getElementById('playerContainer');
   container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Betöltés…</span></div>';
 
-try {
+  try {
     const res  = await fetch(API_BASE + '/api/resolve?url=' + encodeURIComponent(videoUrl));
     const data = await res.json();
 
@@ -174,16 +178,15 @@ function buildVideoPlayer(container, src, trackTpl) {
     if (e.target === overlay || e.target === centerBtn || centerBtn.contains(e.target)) togglePlay();
   });
   playBtn.addEventListener('click', togglePlay);
-  closeBtn.addEventListener('click', closePlayer);
+  closeBtn.addEventListener('click', () => closePlayer(false)); // Módosítva, hogy kezelje az X-szel bezárást
 
-  // Hibakezelés — ha nem tudja lejátszani, konzolra írja az okot
+  // Hibakezelés
   video.addEventListener('error', () => {
     const err = video.error;
     const codes = { 1:'ABORTED', 2:'NETWORK', 3:'DECODE', 4:'SRC_NOT_SUPPORTED' };
     console.error('[video] hiba:', codes[err?.code] || err?.code, err?.message);
   });
 
-  // play() csak akkor ha már van elegendő adat
   video.addEventListener('canplay', () => {
     video.play().catch(e => console.warn('[video] play() elutasítva:', e.message));
   }, { once: true });
@@ -266,37 +269,35 @@ function buildVideoPlayer(container, src, trackTpl) {
   });
   showControls();
 
-  // ── Fullscreen ────────────────────────────────────────────────────────────
+  // ── Fullscreen + Tájolás zárolása ─────────────────────────────────────────
   function updateFSIcons(fs) {
     fsBtn.querySelector('.icon-fs-exp').style.display = fs ? 'none'  : 'block';
     fsBtn.querySelector('.icon-fs-col').style.display = fs ? 'block' : 'none';
   }
-fsBtn.addEventListener('click', toggleFullscreen);
-document.addEventListener('fullscreenchange', () => {
-  const fs = !!document.fullscreenElement;
-  updateFSIcons(fs);
-  document.getElementById('playerModalInner').classList.toggle('fullscreen', fs);
-  const so = document.getElementById('cpSubOverlay');
-  if (so) {
-    if (fs) document.getElementById('playerModalInner').appendChild(so);
-    else wrapper.appendChild(so);
-  }
+  fsBtn.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', () => {
+    const fs = !!document.fullscreenElement;
+    updateFSIcons(fs);
+    document.getElementById('playerModalInner').classList.toggle('fullscreen', fs);
+    const so = document.getElementById('cpSubOverlay');
+    if (so) {
+      if (fs) document.getElementById('playerModalInner').appendChild(so);
+      else wrapper.appendChild(so);
+    }
 
-  // JAVÍTÁS: Mobil elforgatás kezelése
-  if (fs) {
-    // Ha teljes képernyőre lépett, elforgatjuk fekvőbe
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(err => {
-        console.warn("A tájolás zárolása nem sikerült (pl. nem mobil vagy nincs HTTPS):", err);
-      });
+    // JAVÍTÁS: Automatikus fektetett mód mobil eszközökön fullscreen esetén
+    if (fs) {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(err => {
+          console.warn("Képernyő zárolása elutasítva (HTTPS szükséges):", err.message);
+        });
+      }
+    } else {
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+      }
     }
-  } else {
-    // Ha kilépett, feloldjuk a zárolást, hogy visszaálljon az eredeti állapot
-    if (screen.orientation && screen.orientation.unlock) {
-      screen.orientation.unlock();
-    }
-  }
-});
+  });
 
   // ── VTT felirat logika ────────────────────────────────────────────────────
   if (video.textTracks.length > 0) {
@@ -343,7 +344,8 @@ document.addEventListener('fullscreenchange', () => {
 }
 
 // ── Bezárás ───────────────────────────────────────────────────────────────────
-function closePlayer() {
+// JAVÍTÁS: Bekerült egy flag, hogy tudjuk, honnan jött a bezárási esemény
+function closePlayer(fromPopState = false) {
   if (document.fullscreenElement) document.exitFullscreen();
   clearInterval(_subtitleInterval);
   _subtitleInterval = null;
@@ -354,6 +356,11 @@ function closePlayer() {
   document.getElementById('playerModal').classList.remove('active');
   document.getElementById('playerModalInner').classList.remove('fullscreen');
   document.body.style.overflow = '';
+
+  // JAVÍTÁS: Ha nem a vissza gombbal, hanem az X-szel zárták be, töröljük a virtuális előzményt
+  if (!fromPopState && history.state && history.state.playerOpen) {
+    history.back();
+  }
 }
 
 function toggleSubtitle() {
@@ -372,13 +379,21 @@ function toggleFullscreen() {
 
 // ── Globális eventek ──────────────────────────────────────────────────────────
 document.getElementById('playerModal').addEventListener('click', function(e) {
-  if (e.target === this) closePlayer();
+  if (e.target === this) closePlayer(false);
+});
+
+// JAVÍTÁS: Elkapjuk a telefon vissza gombját (popstate), és csak a modalt zárjuk be
+window.addEventListener('popstate', function(e) {
+  const modal = document.getElementById('playerModal');
+  if (modal && modal.classList.contains('active')) {
+    closePlayer(true); 
+  }
 });
 
 document.addEventListener('keydown', function(e) {
   if (!document.getElementById('playerModal').classList.contains('active')) return;
   const v = _currentVideo;
-  if (e.key === 'Escape')           { closePlayer(); return; }
+  if (e.key === 'Escape')             { closePlayer(false); return; }
   if (!v) return;
   if (e.key === ' ' || e.key === 'k') { e.preventDefault(); v.paused ? v.play() : v.pause(); }
   if (e.key === 'ArrowRight')         { e.preventDefault(); v.currentTime = Math.min(v.duration, v.currentTime + 5); }
