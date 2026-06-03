@@ -10,7 +10,10 @@ async function openPlayer(btn) {
   const title     = btn.getAttribute('data-title');
   const card      = btn.closest('.card');
   const trackTpl  = card ? card.querySelector('template.video-tracks') : null;
-  const API_BASE = 'https://api.bombasz.hu';
+
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3000' 
+  : 'https://api.bombasz.hu';
   // Modal megnyitás + loading
   document.getElementById('playerModal').classList.add('active');
   document.body.style.overflow = 'hidden';
