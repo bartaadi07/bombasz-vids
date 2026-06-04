@@ -606,23 +606,51 @@ const server = http.createServer(async (req, res) => {
   // ── Indavideo browser-debug: megmutatja mit lát a szerver az API-ból ──
   if (url.pathname === '/api/indavideo-browser-debug') {
     const slug = url.searchParams.get('slug');
-    if (!slug) { res.writeHead(400); return res.end('Hiányzó slug'); }
+    const hexid = url.searchParams.get('hexid');
+    if (!slug && !hexid) { res.writeHead(400); return res.end('Hiányzó slug vagy hexid'); }
     const results = {};
-    const endpoints = [
-      `https://indavideo.hu/api/video/${slug}`,
-      `https://indavideo.hu/_next/data/latest/video/${slug}.json`,
-      `https://embed.indavideo.hu/player/video/${slug}`,
-    ];
-    for (const ep of endpoints) {
-      try {
-        const { html, status } = await fetchHtml(ep, { 'Accept': 'application/json, text/html, */*' });
-        const hasVideoUrls = /videoUrls|video_urls|\.mp4/i.test(html);
-        const snippet = html.split('\n').filter(l => /videoUrl|video_url|mp4|720|360|480|iinda/i.test(l)).slice(0,10).join('\n');
-        results[ep] = { status, hasVideoUrls, snippet: snippet || '(nincs releváns sor)', length: html.length };
-      } catch(e) {
-        results[ep] = { error: e.message };
+
+    if (slug) {
+      const endpoints = [
+        `https://indavideo.hu/api/video/${slug}`,
+        `https://indavideo.hu/_next/data/latest/video/${slug}.json`,
+        `https://embed.indavideo.hu/player/video/${slug}`,
+      ];
+      for (const ep of endpoints) {
+        try {
+          const { html, status } = await fetchHtml(ep, { 'Accept': 'application/json, text/html, */*' });
+          const hasVideoUrls = /videoUrls|video_urls|\.mp4/i.test(html);
+          const snippet = html.split('\n').filter(l => /videoUrl|video_url|mp4|720|360|480|iinda|token|stream/i.test(l)).slice(0,15).join('\n');
+          results[ep] = { status, hasVideoUrls, snippet: snippet || '(nincs releváns sor)', length: html.length };
+        } catch(e) {
+          results[ep] = { error: e.message };
+        }
       }
     }
+
+    // Ha hexid is meg van adva, lekérjük az embed oldalt a hex ID-val és visszaadjuk a TELJES HTML-t
+    if (hexid) {
+      const embedUrl = `https://embed.indavideo.hu/player/video/${hexid}`;
+      try {
+        const { html, status } = await fetchHtml(embedUrl, {
+          'Referer': 'https://indavideo.hu/',
+          'Origin': 'https://indavideo.hu',
+        });
+        results[embedUrl] = { status, length: html.length, fullHtml: html };
+      } catch(e) {
+        results[embedUrl] = { error: e.message };
+      }
+
+      // Próbáljuk az indavideo belső video API-t hex ID-val is
+      const apiUrl = `https://indavideo.hu/api/video/${hexid}`;
+      try {
+        const { html, status } = await fetchHtml(apiUrl, { 'Accept': 'application/json, */*' });
+        results[apiUrl] = { status, length: html.length, body: html.substring(0, 2000) };
+      } catch(e) {
+        results[apiUrl] = { error: e.message };
+      }
+    }
+
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
     res.end(JSON.stringify(results, null, 2));
     return;
