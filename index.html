@@ -10,177 +10,257 @@
         href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;1,400&family=Barlow:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        .auth-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #111; display: flex; justify-content: center; align-items: center;
+            z-index: 99999; font-family: 'Barlow', sans-serif; color: #fff;
+        }
+        .auth-box {
+            background: #0a0a0a; padding: 30px; border-radius: 8px;
+            border: 1px solid #1c1c1c; width: 100%; max-width: 400px; text-align: center;
+        }
+        .auth-box h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 1px; margin-bottom: 20px; color: #fff; }
+        .auth-box input {
+            width: 100%; padding: 12px; margin: 10px 0; background: #111;
+            border: 1px solid #2a2a2a; color: #fff; border-radius: 4px; box-sizing: border-box;
+            font-family: 'Barlow', sans-serif;
+        }
+        .auth-box input:focus { border-color: #e50914; outline: none; }
+        .auth-box button {
+            width: 100%; padding: 12px; margin-top: 15px; background: #e50914;
+            border: none; color: #fff; font-weight: bold; cursor: pointer; border-radius: 4px;
+            font-family: 'Barlow', sans-serif; font-size: 1rem; transition: background 0.2s;
+        }
+        .auth-box button:hover { background: #ff3040; }
+        .auth-toggle { margin-top: 20px; font-size: 0.9rem; color: #999; cursor: pointer; }
+        .auth-toggle span { color: #e50914; text-decoration: underline; }
+        .auth-error { color: #ff3040; font-size: 0.9rem; margin-top: 12px; min-height: 20px; line-height: 1.4; }
+        .logout-btn { background: transparent; border: 1px solid #e50914; color: #e50914; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-family: 'Barlow', sans-serif; transition: all 0.2s; }
+        .logout-btn:hover { background: #e50914; color: #fff; }
+        .logout-btn {
+    background: transparent;
+    border: 1px solid #2a2a2a; /* Finomabb szürke keret az agresszív piros helyett */
+    color: #999; /* Alapból szürke ikon */
+    width: 40px;
+    height: 40px;
+    min-width: 40px; /* Hogy a rugalmas elrendezés (flex) ne nyomja össze */
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.logout-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Amikor az egér fölé ér, vagy ráböknek, csak akkor villan be a piros */
+.logout-btn:hover {
+    background: rgba(229, 9, 20, 0.1);
+    border-color: #e50914;
+    color: #ff3040;
+}
+@media (max-width: 480px) {
+  /* A teljes fejléc konténer */
+  .header-inner {
+    display: grid !important;
+    grid-template-columns: 1fr auto; /* Bal oldal a logó (ami kitölti a teret), jobb oldal a gomb */
+    row-gap: 12px; /* Távolság a felső sor és a kereső között */
+    column-gap: 10px;
+    padding: 12px 16px !important;
+    align-items: center;
+  }
+
+  /* A logó bal oldalon marad */
+  .header-brand {
+    grid-column: 1;
+    grid-row: 1;
+    text-align: left !important;
+  }
+
+  /* A kijelentkezés gomb fixen a logó mellé, a jobb felső sarokba kényszerül */
+  .logout-btn {
+    grid-column: 2;
+    grid-row: 1;
+    width: 36px !important;  /* Kicsit kisebb, kompaktabb méret mobilra */
+    height: 36px !important;
+    min-width: 36px !important;
+  }
+  
+  .logout-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  /* A keresősáv pedig teljes szélességben beül alájuk a második sorba */
+  .header-search-wrap {
+    grid-column: 1 / span 2; /* Végigér balról jobbra */
+    grid-row: 2;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}
+/* 1. Biztosítjuk, hogy a teljes képernyőmagasságot kihasználja a védett tartalom */
+#protectedContent {
+    display: flex !important;
+    flex-direction: column;
+    min-height: 100vh; /* 100%-os kijelzőmagasság */
+    box-sizing: border-box;
+}
+
+/* 2. A fő tartalom (main) megkapja az összes rugalmas helyet, így lelöki a footert */
+main {
+    flex: 1 0 auto; /* Kitölti a maradék üres teret függőlegesen */
+}
+
+/* 3. A footer fixen a rugalmas konténer aljára kényszerül */
+footer {
+    flex-shrink: 0; /* Megakadályozza, hogy a footer összenyomódjon */
+    width: 100%;
+}
+footer {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)); /* Biztonságos távolság a telefonok aljától */
+}
+    </style>
 </head>
 <body>
-    <header>
-        <div class="header-inner">
-            <div class="header-brand">
-                <span class="logo-main">Bombasz</span><span class="logo-accent">Vids</span>
-            </div>
-            <div class="header-search-wrap">
-                <div class="header-search">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    <input type="text" id="searchInput" placeholder="Keresés…" autocomplete="off" spellcheck="false">
-                    <button class="search-clear" id="searchClear" aria-label="Törlés">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="header-stripe"></div>
-    </header>
-    <main>
-        <div id="noResults" class="no-results" style="display:none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <span>Nincs találat</span>
-        </div>
-        <div class="cards-grid" id="cardsGrid">
 
-            <!-- CHAINSAW MAN -->
-            <div class="card" data-search="chainsaw man reze arc mappa akció anime film 2025"
-                onclick="openDetail('csm')">
-                <div class="card-poster poster-csm">
-                    <img src="covers/chainsaw.jpg" alt="Chainsaw Man cover" onerror="this.style.display='none'">
-                    <div class="poster-placeholder">
-                        <div class="poster-title-art">CHAINSAW<br>MAN</div>
-                    </div>
-                    <div class="poster-badge">Film</div>
-                    <div class="poster-year">2025</div>
-                </div>
-                <div class="card-info">
-                    <div class="card-title">Chainsaw Man the Movie: Reze Arc</div>
-                    <div class="card-subtitle"><em></em></div>
-                    <div class="card-tags">
-                        <span class="tag">Akció</span>
-                        <span class="tag">Anime</span>
-                    </div>
-                    <p class="card-desc">Chainsaw Man film.</p>
-                    <div class="card-sub-entry">
-                        <div class="sub-entry-label">
-                            <span class="sub-dot"></span>Magyar felirat
-                        </div>
-                        <a class="sub-file-btn" href="srt/chainsaw.srt" download onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="8 17 12 21 16 17" />
-                                <line x1="12" y1="12" x2="12" y2="21" />
-                                <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" />
-                            </svg>
-                            SRT
-                        </a>
-                    </div>
-                </div>
-                <template class="video-tracks">
-                    <track kind="subtitles" src="vtt/chainsaw.vtt" srclang="hu" label="Magyar" default>
-                </template>
+    <div id="authContainer" class="auth-container">
+        <div class="auth-box">
+            <h2 id="authTitle">Bejelentkezés</h2>
+            <input type="email" id="authEmail" placeholder="E-mail cím">
+            <input type="password" id="authPassword" placeholder="Jelszó">
+            
+            <button id="authSubmitBtn">Bejelentkezés</button>
+            
+            <div id="forgotPasswordLink" class="auth-toggle" style="margin-top: 10px; margin-bottom: -5px; font-size: 0.85rem;">
+                <span style="color: #999;">Elfelejtetted a jelszavad?</span>
             </div>
-            <div class="card" data-search="evangelion end of neon genesis gainax dráma anime film 1997"
-                onclick="openDetail('eva')">
-                <div class="card-poster poster-eva">
-                    <img src="covers/evangelion.jpg" alt="End of Evangelion cover" onerror="this.style.display='none'">
-                    <div class="poster-placeholder">
-                        <div class="poster-title-art">END OF<br>EVANGELION</div>
-                    </div>
-                    <div class="poster-badge">Film</div>
-                    <div class="poster-year">1997</div>
-                </div>
-                <div class="card-info">
-                    <div class="card-title">The End of Evangelion</div>
-                    <div class="card-subtitle"><em>Neon Genesis Evangelion</em></div>
-                    <div class="card-tags">
-                        <span class="tag">Dráma</span>
-                        <span class="tag">Anime</span>
-                    </div>
-                    <p class="card-desc">Nem az én feliratom — időzítés javítva. Ha te vagy a fordító, keress fel!</p>
-                    <div class="card-sub-entry">
-                        <div class="sub-entry-label">
-                            <span class="sub-dot"></span>Magyar felirat
-                        </div>
-                        <a class="sub-file-btn" href="srt/end.of.evangelion.srt" download
-                            onclick="event.stopPropagation()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="8 17 12 21 16 17" />
-                                <line x1="12" y1="12" x2="12" y2="21" />
-                                <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" />
-                            </svg>
-                            SRT
-                        </a>
-                    </div>
-                </div>
-                <template class="video-tracks">
-                    <track kind="subtitles" src="vtt/end.of.evangelion.vtt" srclang="hu" label="Magyar" default>
-                </template>
-            </div>
+
+            <div id="authError" class="auth-error"></div>
+            
+            <div class="auth-toggle" id="authToggle">Még nincs fiókod? <span>Regisztráció</span></div>
         </div>
-    </main>
-    <footer>
-        <div class="footer-inner">
-            <span class="footer-logo">Bombasz<span>Vids</span></span>
-            <div class="footer-mid">dc: bartaadi</div>
-        </div>
-    </footer>
-    <div class="detail-overlay" id="detailOverlay">
-        <div class="detail-page" id="detailPage">
-            <div class="detail-hero" id="detailHero">
-                <div class="detail-hero-art" id="detailHeroArt"></div>
-                <div class="detail-hero-gradient"></div>
-                <button class="detail-back" onclick="closeDetail(false); history.back()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                    Vissza
-                </button>
-            </div>
-            <div class="detail-content">
-                <div class="detail-left">
-                    <div class="detail-poster" id="detailPoster"></div>
-                    <button class="detail-poster-play" id="detailPosterPlay">
-                        <svg viewBox="0 0 24 24">
-                            <polygon points="6,3 20,12 6,21" />
+    </div>
+
+    <div id="protectedContent" style="display: none;">
+        <header>
+            <div class="header-inner">
+                <div class="header-brand">
+                    <span class="logo-main">Bombasz</span><span class="logo-accent">Vids</span>
+                </div>
+                <div class="header-search-wrap">
+                    <div class="header-search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
-                        Megtekintés
+                        <input type="text" id="searchInput" placeholder="Keresés…" autocomplete="off" spellcheck="false">
+                        <button class="search-clear" id="searchClear" aria-label="Törlés">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <button id="logoutBtn" class="logout-btn" aria-label="Kijelentkezés" title="Kijelentkezés">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+    </svg>
+</button>
+            </div>
+            <div class="header-stripe"></div>
+        </header>
+        <main>
+            <div id="noResults" class="no-results" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <span>Nincs találat</span>
+            </div>
+            
+            <div class="cards-grid" id="cardsGrid"></div>
+
+        </main>
+        <footer>
+            <div class="footer-inner">
+                <span class="footer-logo">Bombasz<span>Vids</span></span>
+                <div class="footer-mid">dc: bartaadi</div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="protectedModals" style="display: none;">
+        <div class="detail-overlay" id="detailOverlay">
+            <div class="detail-page" id="detailPage">
+                <div class="detail-hero" id="detailHero">
+                    <div class="detail-hero-art" id="detailHeroArt"></div>
+                    <div class="detail-hero-gradient"></div>
+                    <button class="detail-back" onclick="closeDetail(false); history.back()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                        Vissza
                     </button>
                 </div>
-                <div class="detail-right">
-                    <div class="detail-badge-row" id="detailBadges"></div>
-                    <h1 class="detail-title" id="detailTitle"></h1>
-                    <div class="detail-sub-title" id="detailSubTitle"></div>
-                    <p class="detail-desc" id="detailDesc"></p>
-                    <div class="detail-meta-row" id="detailMeta"></div>
-                    <div class="detail-section-label">Elérhető feliratok</div>
-                    <div class="detail-subs" id="detailSubs"></div>
-                    <div class="detail-section-label">Videó forrás</div>
-                    <div class="detail-source" id="detailSource"></div>
+                <div class="detail-content">
+                    <div class="detail-left">
+                        <div class="detail-poster" id="detailPoster"></div>
+                        <button class="detail-poster-play" id="detailPosterPlay">
+                            <svg viewBox="0 0 24 24">
+                                <polygon points="6,3 20,12 6,21" />
+                            </svg>
+                            Megtekintés
+                        </button>
+                    </div>
+                    <div class="detail-right">
+                        <div class="detail-badge-row" id="detailBadges"></div>
+                        <h1 class="detail-title" id="detailTitle"></h1>
+                        <div class="detail-sub-title" id="detailSubTitle"></div>
+                        <p class="detail-desc" id="detailDesc"></p>
+                        <div class="detail-meta-row" id="detailMeta"></div>
+                        <div class="detail-section-label">Elérhető feliratok</div>
+                        <div class="detail-subs" id="detailSubs"></div>
+                        <div class="detail-section-label">Videó forrás</div>
+                        <div class="detail-source" id="detailSource"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-overlay" id="playerModal">
+            <div class="modal" id="playerModalInner">
+                <div class="modal-body">
+                    <div id="playerContainer"></div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="modal-overlay" id="playerModal">
-        <div class="modal" id="playerModalInner">
-            <div class="modal-body">
-                <div id="playerContainer"></div>
-            </div>
-        </div>
-    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    
     <script src="script.js"></script>
     <script src="detail.js"></script>
+    
     <script>
+        // Keresőmotor (Figyeli a már legenerált kártyákat)
         const searchInput = document.getElementById('searchInput');
         const searchClear = document.getElementById('searchClear');
-        const cards = document.querySelectorAll('.card');
         const noResults = document.getElementById('noResults');
+        
         function doSearch() {
+            const cards = document.querySelectorAll('.card');
             const q = searchInput.value.trim().toLowerCase();
             searchClear.style.opacity = q ? '1' : '0';
             searchClear.style.pointerEvents = q ? 'auto' : 'none';

@@ -1,3 +1,250 @@
+// ==========================================
+// FIREBASE CONFIG & AUTH LOGIC
+// ==========================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCaf_p4a2UzwxJQwKYV9OMrm7NZ7FETpds",
+    authDomain: "bombasz.firebaseapp.com",
+    projectId: "bombasz",
+    storageBucket: "bombasz.firebasestorage.app",
+    messagingSenderId: "607004345195",
+    appId: "1:607004345195:web:9df009e88078145396422e",
+    measurementId: "G-5R2B8CB1HP"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// Dinamikus videotár adatszerkezet (Itt bővítheted új filmekkel!)
+const videoData = [
+    {
+        id: "csm",
+        search: "chainsaw man reze arc mappa akció anime film 2025",
+        posterClass: "poster-csm",
+        img: "covers/chainsaw.jpg",
+        placeholderTitle: "CHAINSAW<br>MAN",
+        badge: "Film",
+        year: "2025",
+        title: "Chainsaw Man the Movie: Reze Arc",
+        subtitle: "",
+        tags: ["Akció", "Anime"],
+        desc: "Chainsaw Man film.",
+        srt: "srt/chainsaw.srt",
+        vtt: "vtt/chainsaw.vtt"
+    },
+    {
+        id: "eva",
+        search: "evangelion end of neon genesis gainax dráma anime film 1997",
+        posterClass: "poster-eva",
+        img: "covers/evangelion.jpg",
+        placeholderTitle: "END OF<br>EVANGELION",
+        badge: "Film",
+        year: "1997",
+        title: "The End of Evangelion",
+        subtitle: "Neon Genesis Evangelion",
+        tags: ["Dráma", "Anime"],
+        desc: "Nem az én feliratom — időzítés javítva. Ha te vagy a fordító, keress fel!",
+        srt: "srt/end.of.evangelion.srt",
+        vtt: "vtt/end.of.evangelion.vtt"
+    }
+];
+
+const authContainer = document.getElementById('authContainer');
+const protectedContent = document.getElementById('protectedContent');
+const protectedModals = document.getElementById('protectedModals');
+const cardsGrid = document.getElementById('cardsGrid');
+const authTitle = document.getElementById('authTitle');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authToggle = document.getElementById('authToggle');
+const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+const authError = document.getElementById('authError');
+const logoutBtn = document.getElementById('logoutBtn');
+
+// Lehetséges állapotok: "login", "signup", "forgot"
+let authMode = "login"; 
+
+function updateAuthUI() {
+    authError.textContent = "";
+    authError.style.color = "#ff3040"; // Alapértelmezett hiba piros
+
+    if (authMode === "login") {
+        authTitle.textContent = "Bejelentkezés";
+        authPassword.style.display = "block";
+        authSubmitBtn.textContent = "Bejelentkezés";
+        forgotPasswordLink.style.display = "block";
+        authToggle.innerHTML = "Még nincs fiókod? <span>Regisztráció</span>";
+    } else if (authMode === "signup") {
+        authTitle.textContent = "Regisztráció";
+        authPassword.style.display = "block";
+        authSubmitBtn.textContent = "Regisztráció";
+        forgotPasswordLink.style.display = "none";
+        authToggle.innerHTML = "Már van fiókod? <span>Bejelentkezés</span>";
+    } else if (authMode === "forgot") {
+        authTitle.textContent = "Jelszó visszaállítása";
+        authPassword.style.display = "none";
+        authSubmitBtn.textContent = "E-mail küldése";
+        forgotPasswordLink.style.display = "none";
+        authToggle.innerHTML = "Vissza a <span>Bejelentkezéshez</span>";
+    }
+}
+
+authToggle.addEventListener('click', () => {
+    if (authMode === "login") authMode = "signup";
+    else authMode = "login";
+    updateAuthUI();
+});
+
+forgotPasswordLink.addEventListener('click', () => {
+    authMode = "forgot";
+    updateAuthUI();
+});
+
+authSubmitBtn.addEventListener('click', () => {
+    const email = authEmail.value.trim();
+    const password = authPassword.value;
+    authError.textContent = "";
+
+    if (!email) {
+        authError.textContent = "Kérlek add meg az e-mail címedet!";
+        return;
+    }
+
+    // 1. ELFELEJTETT JELSZÓ MÓD
+    if (authMode === "forgot") {
+        auth.sendPasswordResetEmail(email)
+            .then(() => {
+                authError.style.color = "#2ecc71"; // Zöld szín
+                authError.textContent = "A jelszó-visszaállító e-mailt elküldtük! Ellenőrizd a fiókod.";
+            })
+            .catch(err => {
+                authError.style.color = "#ff3040";
+                authError.textContent = translateError(err.code);
+            });
+        return;
+    }
+
+    if (!password) {
+        authError.textContent = "Kérlek add meg a jelszavadat!";
+        return;
+    }
+
+    // 2. REGISZTRÁCIÓ MÓD
+    if (authMode === "signup") {
+        auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                userCredential.user.sendEmailVerification()
+                    .then(() => {
+                        authError.style.color = "#2ecc71"; // Zöld szín
+                        authError.textContent = "Sikeres regisztráció! Küldtünk egy megerősítő e-mailt. Kérlek kattints a benne lévő linkre a belépés előtt! NÉZD MEG A SPAMEKET!";
+                        auth.signOut(); 
+                        authMode = "login";
+                        setTimeout(updateAuthUI, 5000);
+                    });
+            })
+            .catch(err => {
+                authError.style.color = "#ff3040";
+                authError.textContent = translateError(err.code);
+            });
+
+    // 3. BEJELENTKEZÉS MÓD
+    } else if (authMode === "login") {
+        auth.signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                const user = userCredential.user;
+                if (!user.emailVerified) {
+                    authError.style.color = "#ff3040";
+                    authError.textContent = "Az e-mail címed még nincs megerősítve! Kérlek ellenőrizd a postaládádat.";
+                    auth.signOut();
+                }
+            })
+            .catch(err => {
+                authError.style.color = "#ff3040";
+                authError.textContent = translateError(err.code);
+            });
+    }
+});
+
+logoutBtn.addEventListener('click', () => {
+    auth.signOut().then(() => { window.location.reload(); });
+});
+
+function translateError(code) {
+    switch(code) {
+        case 'auth/invalid-email': return 'Érvénytelen e-mail cím formátum.';
+        case 'auth/user-disabled': return 'Ez a felhasználói fiók le van tiltva.';
+        case 'auth/user-not-found': return 'Nem található felhasználó ezzel az e-mail címmel.';
+        case 'auth/wrong-password': return 'Hibás jelszó. Kérlek próbáld újra!';
+        case 'auth/email-already-in-use': return 'Ez az e-mail cím már használatban van.';
+        case 'auth/weak-password': return 'A jelszónak legalább 6 karakterből kell állnia.';
+        case 'auth/operation-not-allowed': return 'Az e-mail/jelszó regisztráció nincs engedélyezve a Firebase konzolban.';
+        default: return `Hiba történt (${code}). Próbáld újra!`;
+    }
+}
+
+// Dinamikus biztonságos kártya generáló
+function renderCards() {
+    cardsGrid.innerHTML = "";
+    videoData.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "card";
+        card.setAttribute('data-search', item.search);
+        card.setAttribute('onclick', `openDetail('${item.id}')`);
+        
+        const tagsHtml = item.tags.map(t => `<span class="tag">${t}</span>`).join('');
+
+        card.innerHTML = `
+            <div class="card-poster ${item.posterClass}">
+                <img src="${item.img}" alt="${item.title} cover" onerror="this.style.display='none'">
+                <div class="poster-placeholder">
+                    <div class="poster-title-art">${item.placeholderTitle}</div>
+                </div>
+                <div class="poster-badge">${item.badge}</div>
+                <div class="poster-year">${item.year}</div>
+            </div>
+            <div class="card-info">
+                <div class="card-title">${item.title}</div>
+                <div class="card-subtitle"><em>${item.subtitle}</em></div>
+                <div class="card-tags">${tagsHtml}</div>
+                <p class="card-desc">${item.desc}</p>
+                <div class="card-sub-entry">
+                    <div class="sub-entry-label"><span class="sub-dot"></span>Magyar felirat</div>
+                    <a class="sub-file-btn" href="${item.srt}" download onclick="event.stopPropagation()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="8 17 12 21 16 17" />
+                            <line x1="12" y1="12" x2="12" y2="21" />
+                            <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" />
+                        </svg> SRT
+                    </a>
+                </div>
+            </div>
+            <template class="video-tracks">
+                <track kind="subtitles" src="${item.vtt}" srclang="hu" label="Magyar" default>
+            </template>
+        `;
+        cardsGrid.appendChild(card);
+    });
+}
+
+// Állapotfigyelő: Csak ha belépett ÉS verifikált az email, csak akkor generálunk és engedünk be!
+auth.onAuthStateChanged(user => {
+    if (user && user.emailVerified) {
+        renderCards();
+        authContainer.style.display = 'none';
+        protectedContent.style.display = 'block';
+        protectedModals.style.display = 'block';
+    } else {
+        cardsGrid.innerHTML = ""; // DevTools védelem törlése
+        authContainer.style.display = 'flex';
+        protectedContent.style.display = 'none';
+        protectedModals.style.display = 'none';
+    }
+});
+
+
+// ==========================================
+// LEJÁTSZÓ MOTOR ÉS VÉDELMEK (VÁLTOZATLAN)
+// ==========================================
 let _subtitleOn = false;
 let _subtitleInterval = null;
 let _currentVideo = null;
@@ -7,7 +254,6 @@ let _subSize   = parseInt(localStorage.getItem('sub_size')   ?? '100');
 
 async function openPlayer(btn) {
   const videoUrl  = btn.getAttribute('data-url');
-  const title     = btn.getAttribute('data-title');
   const card      = btn.closest('.card');
   const trackTpl  = card ? card.querySelector('template.video-tracks') : null;
 
@@ -41,14 +287,12 @@ function buildVideoPlayer(container, src, trackTpl) {
   wrapper.className = 'custom-player';
   wrapper.innerHTML = `
     <video id="mainVideo" src="${src}" playsinline></video>
-
     <div class="cp-overlay" id="cpOverlay">
       <div class="cp-center-btn" id="cpCenterBtn">
         <svg class="icon-play"  viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
         <svg class="icon-pause" viewBox="0 0 24 24" style="display:none"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>
       </div>
     </div>
-
     <div class="cp-controls" id="cpControls">
       <div class="cp-progress-wrap" id="cpProgressWrap">
         <div class="cp-progress-bg"></div>
@@ -71,20 +315,19 @@ function buildVideoPlayer(container, src, trackTpl) {
           <span class="cp-time" id="cpTime">0:00 / 0:00</span>
         </div>
         <div class="cp-right">
-          <button class="cp-btn cp-btn-cc" id="cpCC" style="display:none" title="Felirat be/ki">CC</button>
-          <button class="cp-btn cp-btn-sub-settings" id="cpSubSettings" style="display:none" title="Felirat beállítások">
+          <button class="cp-btn cp-btn-cc" id="cpCC" style="display:none">CC</button>
+          <button class="cp-btn cp-btn-sub-settings" id="cpSubSettings" style="display:none">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
           </button>
-          <button class="cp-btn" id="cpFSBtn" title="Teljes képernyő">
+          <button class="cp-btn" id="cpFSBtn">
             <svg class="icon-fs-exp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3"/></svg>
             <svg class="icon-fs-col" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M8 3v3a2 2 0 01-2 2H3M21 8h-3a2 2 0 01-2-2V3M8 21v-3a2 2 0 00-2-2H3M21 16h-3a2 2 0 00-2 2v3"/></svg>
           </button>
-          <button class="cp-btn cp-btn-close" id="cpClose" title="Bezárás">
+          <button class="cp-btn cp-btn-close" id="cpClose">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
       </div>
-
       <div class="cp-sub-panel" id="cpSubPanel" style="display:none">
         <div class="cp-sub-row">
           <span class="cp-sub-label">Pozíció</span>
@@ -98,7 +341,6 @@ function buildVideoPlayer(container, src, trackTpl) {
         </div>
       </div>
     </div>
-
     <div class="subtitle-overlay" id="cpSubOverlay"></div>
   `;
 
@@ -175,20 +417,10 @@ function buildVideoPlayer(container, src, trackTpl) {
   playBtn.addEventListener('click', togglePlay);
   closeBtn.addEventListener('click', () => closePlayer(false));
 
-  overlay.addEventListener('dblclick', e => {
-    e.preventDefault();
-    toggleFullscreen();
-  });
-
-
-  video.addEventListener('error', () => {
-    const err = video.error;
-    const codes = { 1:'ABORTED', 2:'NETWORK', 3:'DECODE', 4:'SRC_NOT_SUPPORTED' };
-    console.error('[video] hiba:', codes[err?.code] || err?.code, err?.message);
-  });
+  overlay.addEventListener('dblclick', e => { e.preventDefault(); toggleFullscreen(); });
 
   video.addEventListener('canplay', () => {
-    video.play().catch(e => console.warn('[video] play() elutasítva:', e.message));
+    video.play().catch(e => console.warn('play() blocked:', e.message));
   }, { once: true });
 
   function fmtTime(s) {
@@ -248,11 +480,8 @@ function buildVideoPlayer(container, src, trackTpl) {
   wrapper.addEventListener('wheel', e => {
     e.preventDefault(); 
     const step = 0.05;  
-    if (e.deltaY < 0) {
-      video.volume = Math.min(1, video.volume + step); 
-    } else {
-      video.volume = Math.max(0, video.volume - step); 
-    }
+    if (e.deltaY < 0) video.volume = Math.min(1, video.volume + step); 
+    else video.volume = Math.max(0, video.volume - step); 
     video.muted = false; 
   }, { passive: false });
 
@@ -291,17 +520,10 @@ function buildVideoPlayer(container, src, trackTpl) {
       if (fs) document.getElementById('playerModalInner').appendChild(so);
       else wrapper.appendChild(so);
     }
-
-    if (fs) {
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(err => {
-          console.warn("Képernyő zárolása elutasítva (HTTPS szükséges):", err.message);
-        });
-      }
-    } else {
-      if (screen.orientation && screen.orientation.unlock) {
-        screen.orientation.unlock();
-      }
+    if (fs && screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    } else if (screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
     }
   });
 
@@ -310,7 +532,6 @@ function buildVideoPlayer(container, src, trackTpl) {
       const tt = video.textTracks[0];
       if (!tt || !tt.cues) return false;
       tt.mode = 'showing';
-
       subOverlay.style.fontSize = (_subSize / 100 * 1.1) + 'rem';
       ccBtn.style.display       = 'flex';
       subSettings.style.display = 'flex';
@@ -325,25 +546,20 @@ function buildVideoPlayer(container, src, trackTpl) {
         const active = t.activeCues;
         if (active && active.length > 0) {
           const text = active[0].text.replace(/<[^>]+>/g, '');
-          so.innerHTML = text
-            ? text.split('\n').map(l => `<span>${l}</span>`).join('<br>')
-            : '';
+          so.innerHTML = text ? text.split('\n').map(l => `<span>${l}</span>`).join('<br>') : '';
         } else {
           so.innerHTML = '';
         }
       }, 100);
       return true;
     }
-
     const firstTrackEl = video.querySelector('track');
     if (firstTrackEl) {
       firstTrackEl.addEventListener('load',  () => initSubtitles());
-      firstTrackEl.addEventListener('error', e => console.warn('VTT hiba:', e));
     }
     video.addEventListener('loadedmetadata', () => {
       if (!initSubtitles()) setTimeout(initSubtitles, 500);
     });
-
     ccBtn.addEventListener('click', toggleSubtitle);
   }
 }
@@ -383,17 +599,15 @@ document.getElementById('playerModal').addEventListener('click', function(e) {
   if (e.target === this) closePlayer(false);
 });
 
-window.addEventListener('popstate', function(e) {
+window.addEventListener('popstate', function() {
   const modal = document.getElementById('playerModal');
-  if (modal && modal.classList.contains('active')) {
-    closePlayer(true); 
-  }
+  if (modal && modal.classList.contains('active')) closePlayer(true); 
 });
 
 document.addEventListener('keydown', function(e) {
   if (!document.getElementById('playerModal').classList.contains('active')) return;
   const v = _currentVideo;
-  if (e.key === 'Escape')             { closePlayer(false); return; }
+  if (e.key === 'Escape') { closePlayer(false); return; }
   if (!v) return;
   if (e.key === ' ' || e.key === 'k') { e.preventDefault(); v.paused ? v.play() : v.pause(); }
   if (e.key === 'ArrowRight')         { e.preventDefault(); v.currentTime = Math.min(v.duration, v.currentTime + 5); }
@@ -405,27 +619,13 @@ document.addEventListener('keydown', function(e) {
     if (cc && cc.style.display !== 'none') toggleSubtitle();
   }
 });
-document.addEventListener('contextmenu', function(e) {
-  e.preventDefault();
-});
 
+// Külső lezárások / DevTools tiltások
+document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', function(e) {
-  
-  if (e.key === 'F12') {
-    e.preventDefault();
-    return false;
-  }
-
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
-    e.preventDefault();
-    return false;
-  }
-
+  if (e.key === 'F12') { e.preventDefault(); return false; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') { e.preventDefault(); return false; }
   const isDevToolsCombo = (e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase());
   const isMacDevToolsCombo = e.metaKey && e.altKey && ['i', 'j', 'c'].includes(e.key.toLowerCase());
-
-  if (isDevToolsCombo || isMacDevToolsCombo) {
-    e.preventDefault();
-    return false;
-  }
+  if (isDevToolsCombo || isMacDevToolsCombo) { e.preventDefault(); return false; }
 });
