@@ -631,23 +631,43 @@ const server = http.createServer(async (req, res) => {
     // Ha hexid is meg van adva, lekérjük az embed oldalt a hex ID-val és visszaadjuk a TELJES HTML-t
     if (hexid) {
       const embedUrl = `https://embed.indavideo.hu/player/video/${hexid}`;
+
+      // Először kinyerjük a numerikus video_id-t az embed HTML-ből
+      let videoNumId = null;
       try {
         const { html, status } = await fetchHtml(embedUrl, {
           'Referer': 'https://indavideo.hu/',
-          'Origin': 'https://indavideo.hu',
+          'Origin':  'https://indavideo.hu',
         });
-        results[embedUrl] = { status, length: html.length, fullHtml: html };
+        results[embedUrl] = { status, length: html.length };
+        const numM = html.match(/var video_id = (\d+)/);
+        if (numM) videoNumId = numM[1];
+        results['video_id_found'] = videoNumId;
       } catch(e) {
         results[embedUrl] = { error: e.message };
       }
 
-      // Próbáljuk az indavideo belső video API-t hex ID-val is
-      const apiUrl = `https://indavideo.hu/api/video/${hexid}`;
-      try {
-        const { html, status } = await fetchHtml(apiUrl, { 'Accept': 'application/json, */*' });
-        results[apiUrl] = { status, length: html.length, body: html.substring(0, 2000) };
-      } catch(e) {
-        results[apiUrl] = { error: e.message };
+      // Próbáljuk az összes ismert API végpontot
+      const toTry = [
+        `https://amfphp.indavideo.hu/json/html5Player/getVideoData/${videoNumId || hexid}`,
+        `https://amfphp.indavideo.hu/html5Player/html5Player/getVideoData/${videoNumId || hexid}`,
+        `https://amfphp.indavideo.hu/json/html5Player/getVideoData/${videoNumId || hexid}?hq=1`,
+        `https://indavideo.hu/player/data?vID=${hexid}&h=https://indavideo.hu/&https=1`,
+        `https://embed.indavideo.hu/player/data?vID=${hexid}`,
+      ];
+      for (const ep of toTry) {
+        try {
+          const { html, status } = await fetchHtml(ep, {
+            'Accept': 'application/json, text/javascript, */*',
+            'Referer': 'https://embed.indavideo.hu/',
+            'X-Requested-With': 'XMLHttpRequest',
+          });
+          const snippet = html.substring(0, 1000);
+          const hasUrl = /mp4|token|videoUrl|video_url/i.test(html);
+          results[ep] = { status, length: html.length, hasUrl, snippet };
+        } catch(e) {
+          results[ep] = { error: e.message };
+        }
       }
     }
 
