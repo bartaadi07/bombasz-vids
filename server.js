@@ -39,14 +39,18 @@ console.log('[init] yt-dlp:', ytdlp);
 const urlCache  = new Map();
 const CACHE_TTL = 50 * 60 * 1000;
 
+function isShortLivedToken(videoUrl) {
+  return /indavideo\.hu/i.test(videoUrl);
+}
+
 function getDirectUrl(videoUrl) {
   return new Promise((resolve, reject) => {
     const cached = urlCache.get(videoUrl);
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    if (cached && !isShortLivedToken(videoUrl) && Date.now() - cached.ts < CACHE_TTL) {
       console.log('[cache] visszaadva:', cached.directUrl.substring(0, 80) + '...');
       return resolve(cached.directUrl);
     }
-    const cmd = `${ytdlp} --no-playlist -f "best" --get-url "${videoUrl}"`;
+    const cmd = `${ytdlp} --no-playlist -f "b" --get-url "${videoUrl}"`;
     console.log('[yt-dlp] futtatás:', cmd);
     exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
       if (err || !stdout.trim()) {
@@ -95,19 +99,30 @@ function fetchWithRedirects(urlStr, rangeHeader, maxRedirects = 5) {
   });
 }
 
-function proxyStream(req, res, directUrl) {
+function proxyStream(req, res, directUrl, videoUrl, retries = 10) {
   const rangeHeader = req.headers['range'] || 'bytes=0-';
   console.log('[proxy] → Range:', rangeHeader, '| url:', directUrl.substring(0, 80));
 
   fetchWithRedirects(directUrl, rangeHeader)
     .then(({ res: proxyRes }) => {
       if (proxyRes.statusCode === 403 || proxyRes.statusCode === 401) {
-        for (const [k, v] of urlCache) {
-          if (v.directUrl === directUrl) urlCache.delete(k);
-        }
         proxyRes.resume();
-        res.writeHead(403, { 'Content-Type': 'text/plain' });
-        return res.end('403 — próbáld újra');
+        // Ha van videoUrl és még van próbálkozás, kérj új tokent
+        if (videoUrl && retries > 0) {
+          console.log(`[proxy] 403 — új token kérése (még ${retries} próba)...`);
+          urlCache.delete(videoUrl);
+          getDirectUrl(videoUrl)
+            .then(newUrl => proxyStream(req, res, newUrl, videoUrl, retries - 1))
+            .catch(e => {
+              if (!res.headersSent) { res.writeHead(502); res.end('Proxy hiba: ' + e.message); }
+            });
+          return;
+        }
+        if (!res.headersSent) {
+          res.writeHead(403, { 'Content-Type': 'text/plain' });
+          res.end('403 — próbáld újra');
+        }
+        return;
       }
 
       const upstreamCT  = proxyRes.headers['content-type'] || '';
@@ -177,7 +192,7 @@ const server = http.createServer(async (req, res) => {
     if (!videoUrl) { res.writeHead(400); return res.end('Hiányzó url'); }
     try {
       const directUrl = await getDirectUrl(videoUrl);
-      proxyStream(req, res, directUrl);
+      proxyStream(req, res, directUrl, videoUrl);
     } catch (e) {
       console.error('[stream] hiba:', e);
       res.writeHead(500); res.end(String(e));

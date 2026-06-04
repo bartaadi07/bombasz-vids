@@ -763,3 +763,228 @@ footer {
 
 .modal.fullscreen { position: fixed; inset: 0; max-width: 100%; height: 100%; border: none; }
 .modal.fullscreen .modal-body { position: absolute; inset: 0; padding-top: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SZEKCIÓK
+═══════════════════════════════════════════════════════════════════ */
+
+.content-section {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 48px 0;
+}
+.content-section + .content-section {
+  margin-top: 16px;
+}
+.content-section:last-of-type {
+  padding-bottom: 80px;
+}
+
+/* Szekció fejléc */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.section-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--accent-glow);
+  flex-shrink: 0;
+}
+.section-dot.secondary {
+  background: #555;
+  box-shadow: none;
+}
+.section-title {
+  font-family: var(--f-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.1em;
+  color: var(--white);
+  line-height: 1;
+  text-transform: uppercase;
+}
+.section-title.secondary {
+  color: var(--text-2);
+}
+.section-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border-2) 0%, transparent 100%);
+}
+.section-count {
+  font-family: var(--f-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+/* Grid a szekción belül */
+.content-section .cards-grid {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   EPIZÓD LISTA — sorozatoknál
+═══════════════════════════════════════════════════════════════════ */
+
+.episodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.episode-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  width: 100%;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+.episode-btn::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform 0.15s;
+}
+.episode-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--border-2);
+  transform: translateX(2px);
+}
+.episode-btn:hover::before {
+  transform: scaleY(1);
+}
+.episode-btn:active {
+  transform: translateX(2px) scale(0.99);
+}
+
+.ep-num {
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  flex-shrink: 0;
+  min-width: 22px;
+}
+.ep-title {
+  font-family: var(--f-cond);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ep-play-icon {
+  width: 10px;
+  height: 10px;
+  fill: var(--text-3);
+  flex-shrink: 0;
+  transition: fill 0.14s;
+}
+.episode-btn:hover .ep-play-icon {
+  fill: var(--accent);
+}
+
+/* Kártyán sorozat jelzés */
+.poster-badge.series-badge {
+  background: rgba(80, 120, 229, 0.88);
+}
+.card-ep-count {
+  font-family: var(--f-mono);
+  font-size: 0.46rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESZPONZÍV — szekciók
+═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 960px) {
+  .content-section { padding: 28px 28px 0; }
+  .content-section:last-of-type { padding-bottom: 60px; }
+  .episodes-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .content-section { padding: 20px 16px 0; }
+  .content-section:last-of-type { padding-bottom: 40px; }
+  .section-title { font-size: 1.1rem; }
+  .episodes-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+}
+
+@media (max-width: 480px) {
+  .section-header { gap: 10px; margin-bottom: 14px; }
+  .section-title { font-size: 1rem; }
+  .episodes-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .ep-title { font-size: 0.8rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PÉLDA POSZTER STÍLUSOK — Dungeon Meshi & deathnote Psycho
+═══════════════════════════════════════════════════════════════════ */
+
+.poster-dunmeshi .poster-placeholder {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(160deg, #020a04 0%, #041a08 30%, #073d14 60%, #0a5218 80%, #021006 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.poster-dunmeshi .poster-placeholder::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, transparent 0, transparent 36px, rgba(20,160,60,0.05) 36px, rgba(20,160,60,0.05) 37px);
+}
+.poster-dunmeshi .poster-placeholder::after {
+  content: '';
+  position: absolute; top: 10%; left: 10%; width: 80%; height: 75%;
+  background: radial-gradient(ellipse, rgba(30,180,80,0.18) 0%, transparent 70%);
+}
+
+.poster-deathnote .poster-placeholder {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(160deg, #080212 0%, #140326 30%, #280550 60%, #1a0438 80%, #050110 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.poster-deathnote .poster-placeholder::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(-45deg, transparent 0, transparent 32px, rgba(140,40,240,0.06) 32px, rgba(140,40,240,0.06) 33px);
+}
+.poster-deathnote .poster-placeholder::after {
+  content: '';
+  position: absolute; top: 5%; left: 5%; width: 90%; height: 90%;
+  background: radial-gradient(ellipse, rgba(120,30,220,0.22) 0%, transparent 65%);
+}
