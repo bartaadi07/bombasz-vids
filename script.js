@@ -62,21 +62,89 @@ async function resolveIndavideoInBrowser(pageUrl, API_BASE) {
   const slugM = pageUrl.match(/indavideo\.hu\/video\/([^/?#]+)/);
   if (!slugM) return null;
   const slug = slugM[1];
+
+  // 1. Próba: közvetlen böngésző fetch az indavideo API-ra (magyar IP → magas minőség)
+  // Az indavideo Next.js frontend ezeket az endpointokat használja
+  const apiEndpoints = [
+    `https://indavideo.hu/api/video/${slug}`,
+    `https://indavideo.hu/_next/data/latest/video/${slug}.json`,
+  ];
+  for (const endpoint of apiEndpoints) {
+    try {
+      const r = await fetch(endpoint, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'omit',
+      });
+      if (!r.ok) continue;
+      const data = await r.json();
+      const streams = extractStreamsFromJson(data);
+      if (streams && streams.length > 0) {
+        console.log('[indavideo-browser] API siker:', endpoint, '→', streams.map(s => s.height + 'p'));
+        return streams;
+      }
+    } catch(e) {
+      console.warn('[indavideo-browser] API hiba:', endpoint, e.message);
+    }
+  }
+
+  // 2. Próba: közvetlen embed oldal fetch a böngészőből (ha CORS engedi)
+  const embedUrl = `https://embed.indavideo.hu/player/video/${slug}`;
   try {
-    const r = await fetch(API_BASE + "/api/indavideo-embed-proxy?url=" +
-      encodeURIComponent("https://embed.indavideo.hu/player/video/" + slug));
+    const r = await fetch(embedUrl, {
+      headers: { 'Referer': 'https://indavideo.hu/', 'Accept': 'text/html,*/*' },
+      credentials: 'omit',
+    });
     if (r.ok) {
       const html = await r.text();
       const streams = parseIndavideoStreams(html);
       if (streams.length > 0) {
-        console.log("[indavideo-browser] talált stream-ek:", streams.map(s => s.height + "p"));
+        console.log('[indavideo-browser] embed siker →', streams.map(s => s.height + 'p'));
         return streams;
       }
     }
   } catch(e) {
-    console.warn("[indavideo-browser] proxy hiba:", e.message);
+    console.warn('[indavideo-browser] embed CORS blokkolt:', e.message);
   }
+
+  // 3. Próba: szerver proxy az embed HTML-ért (utolsó lehetőség — szerver IP-vel megy, de jobb mint semmi)
+  try {
+    const r = await fetch(API_BASE + '/api/indavideo-embed-proxy?url=' +
+      encodeURIComponent(embedUrl));
+    if (r.ok) {
+      const html = await r.text();
+      const streams = parseIndavideoStreams(html);
+      if (streams.length > 0) {
+        console.log('[indavideo-browser] szerver proxy →', streams.map(s => s.height + 'p'));
+        return streams;
+      }
+      console.warn('[indavideo-browser] szerver proxy HTML-ben nincs stream');
+    }
+  } catch(e) {
+    console.warn('[indavideo-browser] szerver proxy hiba:', e.message);
+  }
+
   return null;
+}
+
+function extractStreamsFromJson(data) {
+  const streams = [];
+  function scan(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    for (const key of ['video_urls', 'videoUrls', 'video_files', 'videoFiles', 'urls', 'files']) {
+      if (Array.isArray(obj[key])) {
+        obj[key].forEach(item => {
+          const u = typeof item === 'string' ? item : (item.url || item.src || item.file || item.video_url);
+          if (u && typeof u === 'string' && u.startsWith('http') && !streams.find(s => s.url === u))
+            streams.push({ url: u, height: guessHeightFromUrl(u) });
+        });
+      }
+    }
+    for (const v of Object.values(obj)) {
+      if (v && typeof v === 'object' && !Array.isArray(v)) scan(v);
+    }
+  }
+  scan(data);
+  return streams.length > 0 ? streams.sort((a, b) => b.height - a.height) : null;
 }
 
 async function openPlayer(btn) {

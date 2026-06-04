@@ -603,6 +603,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── Indavideo browser-debug: megmutatja mit lát a szerver az API-ból ──
+  if (url.pathname === '/api/indavideo-browser-debug') {
+    const slug = url.searchParams.get('slug');
+    if (!slug) { res.writeHead(400); return res.end('Hiányzó slug'); }
+    const results = {};
+    const endpoints = [
+      `https://indavideo.hu/api/video/${slug}`,
+      `https://indavideo.hu/_next/data/latest/video/${slug}.json`,
+      `https://embed.indavideo.hu/player/video/${slug}`,
+    ];
+    for (const ep of endpoints) {
+      try {
+        const { html, status } = await fetchHtml(ep, { 'Accept': 'application/json, text/html, */*' });
+        const hasVideoUrls = /videoUrls|video_urls|\.mp4/i.test(html);
+        const snippet = html.split('\n').filter(l => /videoUrl|video_url|mp4|720|360|480|iinda/i.test(l)).slice(0,10).join('\n');
+        results[ep] = { status, hasVideoUrls, snippet: snippet || '(nincs releváns sor)', length: html.length };
+      } catch(e) {
+        results[ep] = { error: e.message };
+      }
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify(results, null, 2));
+    return;
+  }
+
   // ── Indavideo embed HTML proxy (CORS bypass — a böngésző kéri, a szerver forwrdolja) ──
   // A szerver csak visszaadja az embed HTML-t; a token kinyerés a böngészőben történik
   if (url.pathname === '/api/indavideo-embed-proxy') {
