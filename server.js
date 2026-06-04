@@ -53,7 +53,7 @@ function getDirectUrl(videoUrl) {
     const cmd = `${ytdlp} --no-playlist -f "b" --get-url "${videoUrl}"`;
     console.log('[yt-dlp] futtatás:', cmd);
     exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
-      if (err || !stdout.trim()) {
+      if (!stdout.trim()) {
         console.error('[yt-dlp] hiba:', stderr);
         return reject(stderr || err?.message || 'yt-dlp hiba');
       }
