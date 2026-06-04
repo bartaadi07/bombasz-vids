@@ -24,7 +24,6 @@ function findYtdlp() {
   if (fs.existsSync(localLinux))   return `"${localLinux}"`;
   if (fs.existsSync(localWindows)) return `"${localWindows}"`;
 
-
   try { execSync('yt-dlp --version', { stdio: 'ignore' }); return 'yt-dlp'; } catch {}
   return null;
 }
@@ -36,15 +35,16 @@ if (!ytdlp) {
 }
 console.log('[init] yt-dlp:', ytdlp);
 
-const urlCache  = new Map();
-const CACHE_TTL = 50 * 60 * 1000;
+// Cache: videoUrl -> { formats, ts }
+const formatsCache = new Map();
+// Cache: videoUrl+quality -> { directUrl, ts }
+const urlCache     = new Map();
+const CACHE_TTL    = 50 * 60 * 1000;
 
 function isShortLivedToken(videoUrl) {
   return /indavideo\.hu/i.test(videoUrl);
 }
 
-// Indavideo.hu: az oldal URL-ből (video/SLUG) kinyeri az embed URL-t (player/video/HEX_ID)
-// Azért kell, mert a yt-dlp IndavideoIE extractorát eltávolították — csak IndavideoEmbedIE maradt.
 function resolveIndavideoEmbedUrl(pageUrl) {
   return new Promise((resolve, reject) => {
     const parsed = new URL(pageUrl.startsWith('http') ? pageUrl : 'https://' + pageUrl);
@@ -68,7 +68,6 @@ function resolveIndavideoEmbedUrl(pageUrl) {
       res.setEncoding('utf8');
       res.on('data', chunk => html += chunk);
       res.on('end', () => {
-        // Keresd az embed URL-t az oldalon
         const patterns = [
           /embed\.indavideo\.hu\/player\/video\/([a-f0-9]+)/,
           /indavideo\.hu\/player\/video\/([a-f0-9]+)/,
@@ -92,35 +91,135 @@ function resolveIndavideoEmbedUrl(pageUrl) {
   });
 }
 
-function getDirectUrl(videoUrl) {
+// Felbontás → sorrend szám (magasabb = jobb)
+function heightScore(h) { return h || 0; }
+
+// Elérhető formátumok lekérése és feldolgozása
+function getFormats(videoUrl) {
   return new Promise(async (resolve, reject) => {
-    const cached = urlCache.get(videoUrl);
+    const cached = formatsCache.get(videoUrl);
+    if (cached && !isShortLivedToken(videoUrl) && Date.now() - cached.ts < CACHE_TTL) {
+      return resolve(cached.formats);
+    }
+
+    let ytdlpUrl = videoUrl;
+    if (/indavideo\.hu\/video\//i.test(videoUrl)) {
+      try { ytdlpUrl = await resolveIndavideoEmbedUrl(videoUrl); }
+      catch (e) { return reject(e); }
+    }
+
+    // -J: JSON dump, ebből kinyerjük a formátumokat
+    const cmd = `${ytdlp} --no-playlist -J "${ytdlpUrl}"`;
+    console.log('[formats] futtatás:', cmd);
+    exec(cmd, { timeout: 30000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err || !stdout.trim()) {
+        console.error('[formats] hiba:', stderr);
+        return reject(new Error(stderr || err?.message || 'yt-dlp hiba'));
+      }
+      try {
+        const info = JSON.parse(stdout);
+        const fmts = info.formats || [];
+
+        // Gyűjtsük össze az elérhető video felbontásokat
+        const seen = new Set();
+        const qualities = [];
+
+        // Keressük a legjobb mp4/video-only + audio kombinációkat
+        fmts
+          .filter(f => f.height && f.height > 0 && (f.vcodec && f.vcodec !== 'none'))
+          .sort((a, b) => b.height - a.height)
+          .forEach(f => {
+            if (!seen.has(f.height)) {
+              seen.add(f.height);
+              qualities.push({
+                height: f.height,
+                label: f.height + 'p',
+                formatId: f.format_id,
+              });
+            }
+          });
+
+        // Ha nincs külön video track, próbáljuk a combined formátumokat
+        if (qualities.length === 0) {
+          fmts
+            .filter(f => f.height && f.height > 0)
+            .sort((a, b) => b.height - a.height)
+            .forEach(f => {
+              if (!seen.has(f.height)) {
+                seen.add(f.height);
+                qualities.push({
+                  height: f.height,
+                  label: f.height + 'p',
+                  formatId: f.format_id,
+                });
+              }
+            });
+        }
+
+        if (qualities.length === 0) {
+          // Fallback: csak 1 "legjobb" opció
+          qualities.push({ height: 0, label: 'Legjobb', formatId: 'best' });
+        }
+
+        // Rendezzük csökkenő sorrendbe (legmagasabb elöl)
+        qualities.sort((a, b) => b.height - a.height);
+
+        const result = {
+          qualities,
+          maxHeight: qualities[0].height,
+          resolvedUrl: ytdlpUrl,
+        };
+
+        formatsCache.set(videoUrl, { formats: result, ts: Date.now() });
+        resolve(result);
+      } catch (e) {
+        reject(new Error('JSON parse hiba: ' + e.message));
+      }
+    });
+  });
+}
+
+// Direkt URL lekérése adott minőségnél
+function getDirectUrl(videoUrl, quality) {
+  return new Promise(async (resolve, reject) => {
+    const cacheKey = videoUrl + '::' + (quality || 'best');
+    const cached = urlCache.get(cacheKey);
     if (cached && !isShortLivedToken(videoUrl) && Date.now() - cached.ts < CACHE_TTL) {
       console.log('[cache] visszaadva:', cached.directUrl.substring(0, 80) + '...');
       return resolve(cached.directUrl);
     }
 
-    // Indavideo oldal URL → embed URL konverzió (yt-dlp csak embed URL-t tud kezelni)
     let ytdlpUrl = videoUrl;
     if (/indavideo\.hu\/video\//i.test(videoUrl)) {
-      try {
-        ytdlpUrl = await resolveIndavideoEmbedUrl(videoUrl);
-      } catch (e) {
-        console.error('[indavideo] embed URL kinyerés sikertelen:', e.message);
-        return reject(e);
-      }
+      try { ytdlpUrl = await resolveIndavideoEmbedUrl(videoUrl); }
+      catch (e) { return reject(e); }
     }
 
-    const cmd = `${ytdlp} --no-playlist -f "best[height>=720]/best" --get-url "${ytdlpUrl}"`;
+    // Formátum selector: ha van konkrét height, kérjük azt vagy alatta a legjobbat
+    let fmtSelector;
+    if (quality && quality !== 'best') {
+      const h = parseInt(quality);
+      if (!isNaN(h)) {
+        // Legjobbat kérjük ezen a felbontáson (video+audio merge, vagy combined)
+        fmtSelector = `bestvideo[height=${h}]+bestaudio/best[height=${h}]/bestvideo[height<=${h}]+bestaudio/best[height<=${h}]/best`;
+      } else {
+        fmtSelector = 'best';
+      }
+    } else {
+      fmtSelector = 'bestvideo+bestaudio/best';
+    }
+
+    const cmd = `${ytdlp} --no-playlist -f "${fmtSelector}" --get-url "${ytdlpUrl}"`;
     console.log('[yt-dlp] futtatás:', cmd);
     exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
       if (!stdout.trim()) {
         console.error('[yt-dlp] hiba:', stderr);
         return reject(stderr || err?.message || 'yt-dlp hiba');
       }
+      // Ha 2 sor jön (video + audio külön), az első sort adjuk vissza
       const directUrl = stdout.trim().split('\n')[0].trim();
       console.log('[yt-dlp] kinyert URL:', directUrl.substring(0, 100) + '...');
-      urlCache.set(videoUrl, { directUrl, ts: Date.now() });
+      urlCache.set(cacheKey, { directUrl, ts: Date.now() });
       resolve(directUrl);
     });
   });
@@ -160,7 +259,7 @@ function fetchWithRedirects(urlStr, rangeHeader, maxRedirects = 5) {
   });
 }
 
-function proxyStream(req, res, directUrl, videoUrl, retries = 10) {
+function proxyStream(req, res, directUrl, videoUrl, quality, retries = 10) {
   const rangeHeader = req.headers['range'] || 'bytes=0-';
   console.log('[proxy] → Range:', rangeHeader, '| url:', directUrl.substring(0, 80));
 
@@ -168,12 +267,13 @@ function proxyStream(req, res, directUrl, videoUrl, retries = 10) {
     .then(({ res: proxyRes }) => {
       if (proxyRes.statusCode === 403 || proxyRes.statusCode === 401) {
         proxyRes.resume();
-        // Ha van videoUrl és még van próbálkozás, kérj új tokent
         if (videoUrl && retries > 0) {
           console.log(`[proxy] 403 — új token kérése (még ${retries} próba)...`);
-          urlCache.delete(videoUrl);
-          getDirectUrl(videoUrl)
-            .then(newUrl => proxyStream(req, res, newUrl, videoUrl, retries - 1))
+          // Töröljük a cache-t ennél a quality-nél
+          const cacheKey = videoUrl + '::' + (quality || 'best');
+          urlCache.delete(cacheKey);
+          getDirectUrl(videoUrl, quality)
+            .then(newUrl => proxyStream(req, res, newUrl, videoUrl, quality, retries - 1))
             .catch(e => {
               if (!res.headersSent) { res.writeHead(502); res.end('Proxy hiba: ' + e.message); }
             });
@@ -229,15 +329,37 @@ const server = http.createServer(async (req, res) => {
     return res.end('OK');
   }
 
-  if (url.pathname === '/api/resolve') {
+  // ─── ÚJ: /api/formats — elérhető minőségek lekérése ────────────────
+  if (url.pathname === '/api/formats') {
     const videoUrl = url.searchParams.get('url');
     if (!videoUrl) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: 'Hiányzó url' }));
     }
     try {
-      await getDirectUrl(videoUrl);
-      const proxyUrl = `/api/stream?url=${encodeURIComponent(videoUrl)}`;
+      const result = await getFormats(videoUrl);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (e) {
+      console.error('[formats] hiba:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: String(e) }));
+    }
+    return;
+  }
+
+  // ─── /api/resolve — quality paraméterrel bővítve ───────────────────
+  if (url.pathname === '/api/resolve') {
+    const videoUrl = url.searchParams.get('url');
+    const quality  = url.searchParams.get('quality') || null; // pl. "1080", "720", "best"
+    if (!videoUrl) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Hiányzó url' }));
+    }
+    try {
+      await getDirectUrl(videoUrl, quality);
+      const qParam   = quality ? `&quality=${encodeURIComponent(quality)}` : '';
+      const proxyUrl = `/api/stream?url=${encodeURIComponent(videoUrl)}${qParam}`;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ proxyUrl }));
     } catch (e) {
@@ -248,12 +370,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ─── /api/stream — quality paraméterrel bővítve ────────────────────
   if (url.pathname === '/api/stream') {
     const videoUrl = url.searchParams.get('url');
+    const quality  = url.searchParams.get('quality') || null;
     if (!videoUrl) { res.writeHead(400); return res.end('Hiányzó url'); }
     try {
-      const directUrl = await getDirectUrl(videoUrl);
-      proxyStream(req, res, directUrl, videoUrl);
+      const directUrl = await getDirectUrl(videoUrl, quality);
+      proxyStream(req, res, directUrl, videoUrl, quality);
     } catch (e) {
       console.error('[stream] hiba:', e);
       res.writeHead(500); res.end(String(e));

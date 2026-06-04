@@ -988,3 +988,132 @@ footer {
   position: absolute; top: 5%; left: 5%; width: 90%; height: 90%;
   background: radial-gradient(ellipse, rgba(120,30,220,0.22) 0%, transparent 65%);
 }
+/* ═══════════════════════════════════════════════════════════════
+   MINŐSÉGVÁLASZTÓ (Quality Selector)
+═══════════════════════════════════════════════════════════════ */
+
+.cp-quality-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cp-btn-quality {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0 8px;
+  min-width: 44px;
+  height: 32px;
+  border-radius: 6px;
+  color: #e0e0e0;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.18);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.cp-btn-quality:hover,
+.cp-btn-quality.active {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.4);
+  color: #fff;
+}
+
+.cp-quality-menu {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: rgba(18, 18, 22, 0.97);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 6px 0;
+  min-width: 110px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  z-index: 200;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.cp-quality-menu.open {
+  display: flex;
+}
+
+.cp-quality-item {
+  background: none;
+  border: none;
+  color: #c0c0c8;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 9px 18px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.cp-quality-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.cp-quality-item.active {
+  color: #fff;
+  font-weight: 700;
+  background: rgba(255,255,255,0.06);
+}
+
+.cp-quality-item.active::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cp-quality-item:not(.active)::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+}
+
+.q-max-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #a0cfff;
+  background: rgba(80, 160, 255, 0.15);
+  border: 1px solid rgba(80, 160, 255, 0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: auto;
+}
+
+/* Minőségváltás közben overlay */
+.quality-switch-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  border-radius: inherit;
+  backdrop-filter: blur(4px);
+}

@@ -5,6 +5,13 @@ let _currentVideo = null;
 let _subBottom = parseInt(localStorage.getItem('sub_bottom') ?? '8');
 let _subSize   = parseInt(localStorage.getItem('sub_size')   ?? '100');
 
+// Aktuális quality state
+let _currentQuality = null;
+let _availableQualities = [];
+let _currentVideoUrl = null;
+let _currentTrackTpl = null;
+let _currentApiBase  = null;
+
 async function openPlayer(btn) {
   const videoUrl  = btn.getAttribute('data-url');
   const title     = btn.getAttribute('data-title');
@@ -15,28 +22,81 @@ async function openPlayer(btn) {
     ? 'http://localhost:3000' 
     : 'https://api.bombasz.hu';
 
+  _currentVideoUrl = videoUrl;
+  _currentTrackTpl = trackTpl;
+  _currentApiBase  = API_BASE;
+  _currentQuality  = null;
+  _availableQualities = [];
+
   document.getElementById('playerModal').classList.add('active');
   document.body.style.overflow = 'hidden';
 
   history.pushState({ playerOpen: true }, '');
 
   const container = document.getElementById('playerContainer');
-  container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Betöltés…</span></div>';
+  container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Formátumok betöltése…</span></div>';
 
   try {
-    const res  = await fetch(API_BASE + '/api/resolve?url=' + encodeURIComponent(videoUrl));
-    const data = await res.json();
+    // Először lekérjük az elérhető minőségeket
+    const fmtRes  = await fetch(API_BASE + '/api/formats?url=' + encodeURIComponent(videoUrl));
+    const fmtData = await fmtRes.json();
 
-    if (!data.proxyUrl) throw new Error(data.error || 'Ismeretlen hiba');
+    if (fmtData.error) throw new Error(fmtData.error);
 
-    buildVideoPlayer(container, API_BASE + data.proxyUrl, trackTpl);
+    _availableQualities = fmtData.qualities || [];
+    // A legjobb (legmagasabb) minőség legyen az alapértelmezett
+    _currentQuality = _availableQualities.length > 0 ? String(_availableQualities[0].height || 'best') : 'best';
+
+    container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Videó betöltése (' + _currentQuality + 'p)…</span></div>';
+
+    await loadPlayerWithQuality(container, videoUrl, _currentQuality, trackTpl, API_BASE);
   } catch (err) {
     container.innerHTML = `<div class="player-loading"><span style="color:#f66">Hiba: ${err.message}</span></div>`;
     console.error('openPlayer hiba:', err);
   }
 }
 
-function buildVideoPlayer(container, src, trackTpl) {
+async function loadPlayerWithQuality(container, videoUrl, quality, trackTpl, API_BASE) {
+  const qParam = quality && quality !== 'best' ? '&quality=' + encodeURIComponent(quality) : '';
+  const res    = await fetch(API_BASE + '/api/resolve?url=' + encodeURIComponent(videoUrl) + qParam);
+  const data   = await res.json();
+
+  if (!data.proxyUrl) throw new Error(data.error || 'Ismeretlen hiba');
+
+  buildVideoPlayer(container, API_BASE + data.proxyUrl, trackTpl);
+}
+
+async function switchQuality(newQuality) {
+  if (!_currentVideoUrl || newQuality === _currentQuality) return;
+  _currentQuality = newQuality;
+
+  const container = document.getElementById('playerContainer');
+  const video     = container.querySelector('#mainVideo');
+  const savedTime = video ? video.currentTime : 0;
+  const wasPaused = video ? video.paused : true;
+
+  // Betöltés jelzés megőrizve, ne ugorjon
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'player-loading quality-switch-loading';
+  loadingDiv.innerHTML = '<div class="loading-spinner"></div><span>Minőségváltás: ' + newQuality + 'p…</span>';
+  container.appendChild(loadingDiv);
+
+  try {
+    const qParam = newQuality && newQuality !== 'best' ? '&quality=' + encodeURIComponent(newQuality) : '';
+    const res    = await fetch(_currentApiBase + '/api/resolve?url=' + encodeURIComponent(_currentVideoUrl) + qParam);
+    const data   = await res.json();
+    if (!data.proxyUrl) throw new Error(data.error || 'Ismeretlen hiba');
+
+    container.innerHTML = '';
+    buildVideoPlayer(container, _currentApiBase + data.proxyUrl, _currentTrackTpl, savedTime, wasPaused);
+  } catch (err) {
+    loadingDiv.remove();
+    console.error('switchQuality hiba:', err);
+    alert('Minőségváltás sikertelen: ' + err.message);
+  }
+}
+
+function buildVideoPlayer(container, src, trackTpl, resumeTime, resumePlaying) {
   const wrapper = document.createElement('div');
   wrapper.className = 'custom-player';
   wrapper.innerHTML = `
@@ -71,6 +131,12 @@ function buildVideoPlayer(container, src, trackTpl) {
           <span class="cp-time" id="cpTime">0:00 / 0:00</span>
         </div>
         <div class="cp-right">
+          <div class="cp-quality-wrap" id="cpQualityWrap" style="display:none">
+            <button class="cp-btn cp-btn-quality" id="cpQualityBtn" title="Minőség">
+              <span id="cpQualityLabel">HD</span>
+            </button>
+            <div class="cp-quality-menu" id="cpQualityMenu"></div>
+          </div>
           <button class="cp-btn cp-btn-cc" id="cpCC" style="display:none" title="Felirat be/ki">CC</button>
           <button class="cp-btn cp-btn-sub-settings" id="cpSubSettings" style="display:none" title="Felirat beállítások">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -188,7 +254,14 @@ function buildVideoPlayer(container, src, trackTpl) {
   });
 
   video.addEventListener('canplay', () => {
-    video.play().catch(e => console.warn('[video] play() elutasítva:', e.message));
+    if (resumeTime && resumeTime > 0) {
+      video.currentTime = resumeTime;
+    }
+    if (resumePlaying === false) {
+      // ha szüneteltetve volt, ne indítsuk el
+    } else {
+      video.play().catch(e => console.warn('[video] play() elutasítva:', e.message));
+    }
   }, { once: true });
 
   function fmtTime(s) {
@@ -304,6 +377,59 @@ function buildVideoPlayer(container, src, trackTpl) {
       }
     }
   });
+
+  // ─── Minőségválasztó ────────────────────────────────────────────────
+  const qualityWrap  = wrapper.querySelector('#cpQualityWrap');
+  const qualityBtn   = wrapper.querySelector('#cpQualityBtn');
+  const qualityLabel = wrapper.querySelector('#cpQualityLabel');
+  const qualityMenu  = wrapper.querySelector('#cpQualityMenu');
+
+  if (_availableQualities && _availableQualities.length > 1) {
+    qualityWrap.style.display = 'flex';
+
+    // Aktuális minőség felirat
+    const curQ = _currentQuality;
+    qualityLabel.textContent = (curQ && curQ !== 'best') ? curQ + 'p' : 'Legjobb';
+
+    // Menü elemek összeállítása
+    qualityMenu.innerHTML = _availableQualities.map(q => {
+      const qStr   = String(q.height || 'best');
+      const active = qStr === curQ ? ' active' : '';
+      const lbl    = q.height ? q.height + 'p' : 'Legjobb';
+      const badge  = q.height === _availableQualities[0].height ? ' <span class="q-max-badge">MAX</span>' : '';
+      return `<button class="cp-quality-item${active}" data-q="${qStr}">${lbl}${badge}</button>`;
+    }).join('');
+
+    // Menü megnyitás/zárás
+    let menuOpen = false;
+    qualityBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      menuOpen = !menuOpen;
+      qualityMenu.classList.toggle('open', menuOpen);
+      qualityBtn.classList.toggle('active', menuOpen);
+      if (menuOpen) showControls();
+    });
+
+    // Minőség kiválasztása
+    qualityMenu.addEventListener('click', e => {
+      const item = e.target.closest('.cp-quality-item');
+      if (!item) return;
+      const q = item.dataset.q;
+      menuOpen = false;
+      qualityMenu.classList.remove('open');
+      qualityBtn.classList.remove('active');
+      switchQuality(q);
+    });
+
+    // Kattintás máshova → zárja a menüt
+    document.addEventListener('click', function closeQMenu() {
+      if (menuOpen) {
+        menuOpen = false;
+        qualityMenu.classList.remove('open');
+        qualityBtn.classList.remove('active');
+      }
+    });
+  }
 
   if (video.textTracks.length > 0) {
     function initSubtitles() {
