@@ -123,12 +123,39 @@ function extractUrlsFromApiResponse(data) {
   function scanObj(obj) {
     if (!obj || typeof obj !== 'object') return;
 
-    // video_urls vagy videoUrls tömb
-    for (const key of ['video_urls', 'videoUrls', 'video_files', 'videoFiles', 'urls', 'files']) {
+    // SYm0json.php struktúra: data.video_files + data.filesh tokenekkel
+    const videoFiles = obj['video_files'] || obj['videoFiles'];
+    const filesh = obj['filesh'];
+    if (Array.isArray(videoFiles) && videoFiles.length > 0) {
+      videoFiles.forEach(rawUrl => {
+        let url = typeof rawUrl === 'string' ? rawUrl : (rawUrl.url || rawUrl.src || '');
+        if (!url) return;
+        // "//" prefix normalizálás
+        if (url.startsWith('//')) url = 'https:' + url;
+        if (!url.startsWith('http')) return;
+        const h = guessHeight(url);
+        // Token hozzáadása filesh-ből
+        if (filesh && typeof filesh === 'object') {
+          const token = filesh[String(h)] || filesh[h];
+          if (token && !url.includes('token=')) {
+            url = url + (url.includes('?') ? '&' : '?') + 'token=' + token;
+          }
+        }
+        if (!streams.find(s => s.url === url)) {
+          streams.push({ url, height: h });
+        }
+      });
+      return; // ha video_files megvolt, nem kell rekurzív scan
+    }
+
+    // Fallback: egyéb kulcsok
+    for (const key of ['video_urls', 'videoUrls', 'urls', 'files']) {
       if (Array.isArray(obj[key])) {
         obj[key].forEach(item => {
-          const url = typeof item === 'string' ? item : (item.url || item.src || item.file || item.video_url);
-          if (url && typeof url === 'string' && url.startsWith('http') && (url.includes('.mp4') || url.includes('video'))) {
+          let url = typeof item === 'string' ? item : (item.url || item.src || item.file || item.video_url);
+          if (!url) return;
+          if (url.startsWith('//')) url = 'https:' + url;
+          if (url.startsWith('http') && (url.includes('.mp4') || url.includes('video'))) {
             if (!streams.find(s => s.url === url)) {
               streams.push({ url, height: guessHeight(url) });
             }
@@ -604,6 +631,72 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ── Indavideo browser-debug: megmutatja mit lát a szerver az API-ból ──
+  // ── Indavideo hexId kinyerés slug-ból ──
+  // A böngésző ezzel kéri le a hexId-t, majd a JSONP-t maga hívja
+  if (url.pathname === '/api/indavideo-hexid') {
+    const slug = url.searchParams.get('slug');
+    if (!slug) { res.writeHead(400); return res.end('Hiányzó slug'); }
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Próba 1: indavideo.hu/video/<slug> oldalból (Next.js __NEXT_DATA__)
+    const pagesToTry = [
+      `https://indavideo.hu/video/${slug}`,
+      `https://www.indavideo.hu/video/${slug}`,
+    ];
+
+    let hexId = null;
+    let videoId = null;
+
+    for (const pageUrl of pagesToTry) {
+      try {
+        const { html, status } = await fetchHtml(pageUrl, {
+          'Referer': 'https://indavideo.hu/',
+          'Accept-Language': 'hu-HU,hu;q=0.9',
+        });
+        // Next.js data
+        const nextM = html.match(/__NEXT_DATA__[^>]*>({.+?})<\/script>/s);
+        if (nextM) {
+          try {
+            const nextData = JSON.parse(nextM[1]);
+            const vp = nextData?.props?.pageProps?.video;
+            if (vp && vp.hash) hexId = vp.hash;
+            if (vp && vp.id) videoId = String(vp.id);
+          } catch(e) {}
+        }
+        // Fallback: embed.indavideo.hu URL a HTML-ben
+        if (!hexId) {
+          const embedM = html.match(/embed\.indavideo\.hu\/player\/video\/([a-f0-9]+)/);
+          if (embedM) hexId = embedM[1];
+        }
+        // Fallback: hash változó
+        if (!hexId) {
+          const hashM = html.match(/['"](hash|vID)['"]\s*[:=]\s*['"]([a-f0-9]+)['"]/);
+          if (hashM) hexId = hashM[2];
+        }
+        if (hexId) break;
+      } catch(e) {}
+    }
+
+    // Próba 2: ha van hexId, az embed HTML-ből kinyerjük a videoId-t
+    if (hexId && !videoId) {
+      try {
+        const { html } = await fetchHtml(`https://embed.indavideo.hu/player/video/${hexId}`, {
+          'Referer': 'https://indavideo.hu/',
+        });
+        const vidM = html.match(/var video_id\s*=\s*(\d+)/);
+        if (vidM) videoId = vidM[1];
+        if (!videoId) {
+          const fvM = html.match(/vID=([a-f0-9]+)/);
+          // fvars hexId is fine, already have it
+        }
+      } catch(e) {}
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ hexId, videoId, slug }));
+    return;
+  }
+
   if (url.pathname === '/api/indavideo-browser-debug') {
     const slug = url.searchParams.get('slug');
     const hexid = url.searchParams.get('hexid');
@@ -649,11 +742,10 @@ const server = http.createServer(async (req, res) => {
 
       // Próbáljuk az összes ismert API végpontot
       const toTry = [
+        `https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData/${hexid}`,
+        `https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData/${videoNumId || hexid}`,
         `https://amfphp.indavideo.hu/json/html5Player/getVideoData/${videoNumId || hexid}`,
         `https://amfphp.indavideo.hu/html5Player/html5Player/getVideoData/${videoNumId || hexid}`,
-        `https://amfphp.indavideo.hu/json/html5Player/getVideoData/${videoNumId || hexid}?hq=1`,
-        `https://indavideo.hu/player/data?vID=${hexid}&h=https://indavideo.hu/&https=1`,
-        `https://embed.indavideo.hu/player/data?vID=${hexid}`,
       ];
       for (const ep of toTry) {
         try {
