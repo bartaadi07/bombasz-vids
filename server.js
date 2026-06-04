@@ -45,49 +45,198 @@ function isShortLivedToken(videoUrl) {
   return /indavideo\.hu/i.test(videoUrl);
 }
 
-function resolveIndavideoEmbedUrl(pageUrl) {
+// HTTP GET helper – követ redirect-eket, visszaadja a végső HTML-t
+function fetchHtml(pageUrl, extraHeaders, maxRedirects) {
+  if (maxRedirects === undefined) maxRedirects = 5;
+  if (!extraHeaders) extraHeaders = {};
   return new Promise((resolve, reject) => {
-    const parsed = new URL(pageUrl.startsWith('http') ? pageUrl : 'https://' + pageUrl);
-    const mod = parsed.protocol === 'https:' ? https : http;
-    const opts = {
-      hostname: parsed.hostname,
-      path:     parsed.pathname + parsed.search,
-      method:   'GET',
-      headers: {
-        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
-        'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'hu-HU,hu;q=0.9',
-      },
-    };
-    let html = '';
-    const req = mod.request(opts, (res) => {
-      if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307) && res.headers.location) {
-        res.resume();
-        return resolveIndavideoEmbedUrl(res.headers.location).then(resolve).catch(reject);
-      }
-      res.setEncoding('utf8');
-      res.on('data', chunk => html += chunk);
-      res.on('end', () => {
-        const patterns = [
-          /embed\.indavideo\.hu\/player\/video\/([a-f0-9]+)/,
-          /indavideo\.hu\/player\/video\/([a-f0-9]+)/,
-          /"video_id"\s*:\s*"([a-f0-9]+)"/,
-          /player\.indavideo\.hu[^"']*[?&]v(?:ID|id)=([a-f0-9]+)/,
-        ];
-        for (const pat of patterns) {
-          const m = html.match(pat);
-          if (m) {
-            const embedUrl = `https://embed.indavideo.hu/player/video/${m[1]}`;
-            console.log('[indavideo] embed URL kinyerve:', embedUrl);
-            return resolve(embedUrl);
-          }
+    function doGet(currentUrl, remaining) {
+      if (remaining <= 0) return reject(new Error('Túl sok redirect: ' + currentUrl));
+      let parsed;
+      try { parsed = new URL(currentUrl.startsWith('http') ? currentUrl : 'https://' + currentUrl); }
+      catch (e) { return reject(e); }
+      const mod  = parsed.protocol === 'https:' ? https : http;
+      const opts = {
+        hostname: parsed.hostname,
+        path:     parsed.pathname + parsed.search,
+        method:   'GET',
+        headers: Object.assign({
+          'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
+          'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'hu-HU,hu;q=0.9',
+          'Referer':         'https://indavideo.hu/',
+        }, extraHeaders),
+      };
+      let html = '';
+      const req = mod.request(opts, (res) => {
+        const loc = res.headers.location;
+        if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) && loc) {
+          res.resume();
+          const next = loc.startsWith('http') ? loc : new URL(loc, currentUrl).href;
+          return doGet(next, remaining - 1);
         }
-        reject(new Error('Nem találtam embed URL-t az oldalon: ' + pageUrl));
+        res.setEncoding('utf8');
+        res.on('data', chunk => html += chunk);
+        res.on('end', () => resolve({ html, finalUrl: currentUrl, status: res.statusCode }));
       });
-    });
-    req.on('error', reject);
-    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout az oldal betöltésekor')); });
-    req.end();
+      req.on('error', reject);
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout: ' + currentUrl)); });
+      req.end();
+    }
+    doGet(pageUrl, maxRedirects);
+  });
+}
+
+// Az indavideo oldalról kinyeri az ÖSSZES minőség stream URL-jét közvetlenül
+// (megkerüli a yt-dlp-t, ami csak 360p-t ad vissza szerveren)
+function resolveIndavideoStreams(pageUrl) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // 1. Lekérjük a videó oldalt – kell a video_hash és a szükséges cookie-k
+      const pageResult = await fetchHtml(pageUrl);
+      const pageHtml   = pageResult.html;
+
+      // Próbáljuk kinyerni a video hash-t az oldalról
+      let videoHash = null;
+      const hashPatterns = [
+        /["']video_hash["']\s*:\s*["']([\w-]+)["']/,
+        /videoHash\s*=\s*["']([\w-]+)["']/,
+        /hash["\s]*[:=]["\s]*([\w-]{8,})/,
+      ];
+      for (const pat of hashPatterns) {
+        const m = pageHtml.match(pat);
+        if (m) { videoHash = m[1]; break; }
+      }
+
+      // Kinyerjük a video ID-t (hexadecimális)
+      let videoHexId = null;
+      const hexPatterns = [
+        /embed\.indavideo\.hu\/player\/video\/([a-f0-9]{8,})/,
+        /indavideo\.hu\/player\/video\/([a-f0-9]{8,})/,
+        /"video_id"\s*:\s*"([a-f0-9]{8,})"/,
+        /player_indavideo_([a-f0-9]{8,})/,
+      ];
+      for (const pat of hexPatterns) {
+        const m = pageHtml.match(pat);
+        if (m) { videoHexId = m[1]; break; }
+      }
+
+      if (!videoHexId) {
+        // Fallback: slug alapú URL
+        const slugMatch = pageUrl.match(/indavideo\.hu\/video\/([^/?#]+)/);
+        if (slugMatch) {
+          // Próbáljuk az embed oldalt közvetlenül
+          return resolveIndavideoStreamsFromEmbed('https://embed.indavideo.hu/player/video/' + slugMatch[1], resolve, reject);
+        }
+        return reject(new Error('Nem találtam video ID-t: ' + pageUrl));
+      }
+
+      const embedUrl = 'https://embed.indavideo.hu/player/video/' + videoHexId;
+      console.log('[indavideo] embed URL:', embedUrl);
+      return resolveIndavideoStreamsFromEmbed(embedUrl, resolve, reject);
+
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+function resolveIndavideoStreamsFromEmbed(embedUrl, resolve, reject) {
+  fetchHtml(embedUrl, {
+    'Referer': 'https://indavideo.hu/',
+    'Origin':  'https://indavideo.hu',
+  }).then(({ html }) => {
+    // Az embed oldalon a videó URL-ek JSON-ban vannak, pl:
+    // "videoUrls":["https://...360.mp4","https://...720.mp4"]
+    // vagy "video_url":"https://...mp4"
+    // Próbáljuk az összes lehetséges formátumot
+    const streams = [];
+
+    // 1. videoUrls tömb (több minőség)
+    const urlsMatch = html.match(/"videoUrls"\s*:\s*(\[.*?\])/);
+    if (urlsMatch) {
+      try {
+        const arr = JSON.parse(urlsMatch[1]);
+        arr.forEach(u => { if (u && u.startsWith('http')) streams.push(u); });
+      } catch(e) {}
+    }
+
+    // 2. videoUrl (egyes)
+    const singleMatch = html.match(/"videoUrl"\s*:\s*"(https?:[^"]+\.mp4[^"]*)"/);
+    if (singleMatch && !streams.find(s => s === singleMatch[1])) {
+      streams.push(singleMatch[1]);
+    }
+
+    // 3. file: "..." (jwplayer stílus)
+    const fileMatches = html.matchAll(/"file"\s*:\s*"(https?:[^"]+\.mp4[^"]*)"/g);
+    for (const m of fileMatches) {
+      if (!streams.find(s => s === m[1])) streams.push(m[1]);
+    }
+
+    // 4. src: "..." 
+    const srcMatches = html.matchAll(/src["']?\s*:\s*["'](https?:[^"']+\.mp4[^"']*)/g);
+    for (const m of srcMatches) {
+      if (!streams.find(s => s === m[1])) streams.push(m[1]);
+    }
+
+    // 5. Nyers mp4 URL-ek (indavideo CDN domain: iinda.hu, indavideovideo.hu, stb.)
+    const rawMp4 = html.matchAll(/https?:\/\/[^"'<\s]*(?:iinda|indavideo|cdn)[^"'<\s]*\.mp4[^"'<\s]*/g);
+    for (const m of rawMp4) {
+      const u = m[0].replace(/\\/g, '').replace(/\"/g, '');
+      if (!streams.find(s => s === u)) streams.push(u);
+    }
+
+    console.log('[indavideo] talált stream URL-ek:', streams.length, streams.map(u => u.substring(0, 80)));
+
+    if (streams.length === 0) {
+      // Ha semmit sem találtunk, fallback yt-dlp-re
+      return resolve({ streams: null, embedUrl });
+    }
+
+    // Meghatározzuk a minőséget a URL-ből (360, 720, 1080 stb.)
+    function guessHeight(url) {
+      const m = url.match(/[_\-\/](\d{3,4})[_\-\.]?(?:p|\.mp4)/i);
+      if (m) return parseInt(m[1]);
+      if (url.includes('hd')) return 720;
+      if (url.includes('sd')) return 360;
+      return 0;
+    }
+
+    const parsed = streams.map(url => ({
+      url,
+      height: guessHeight(url),
+    })).sort((a, b) => b.height - a.height);
+
+    resolve({ streams: parsed, embedUrl });
+  }).catch(reject);
+}
+
+// Régi kompatibilitás: csak az embed URL-t adja vissza
+function resolveIndavideoEmbedUrl(pageUrl) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const { html } = await fetchHtml(pageUrl);
+      const patterns = [
+        /embed\.indavideo\.hu\/player\/video\/([a-f0-9]+)/,
+        /indavideo\.hu\/player\/video\/([a-f0-9]+)/,
+        /"video_id"\s*:\s*"([a-f0-9]+)"/,
+        /player\.indavideo\.hu[^"']*[?&]v(?:ID|id)=([a-f0-9]+)/,
+      ];
+      for (const pat of patterns) {
+        const m = html.match(pat);
+        if (m) {
+          const embedUrl = `https://embed.indavideo.hu/player/video/${m[1]}`;
+          console.log('[indavideo] embed URL kinyerve:', embedUrl);
+          return resolve(embedUrl);
+        }
+      }
+      // Ha nem találtuk, próbáljuk slug alapon
+      const slugMatch = pageUrl.match(/indavideo\.hu\/video\/([^/?#]+)/);
+      if (slugMatch) return resolve(`https://embed.indavideo.hu/player/video/${slugMatch[1]}`);
+      reject(new Error('Nem találtam embed URL-t az oldalon: ' + pageUrl));
+    } catch(e) {
+      reject(e);
+    }
   });
 }
 
@@ -100,6 +249,27 @@ function getFormats(videoUrl) {
     const cached = formatsCache.get(videoUrl);
     if (cached && !isShortLivedToken(videoUrl) && Date.now() - cached.ts < CACHE_TTL) {
       return resolve(cached.formats);
+    }
+
+    // Indavideo: közvetlenül az embed HTML-ből nyerjük ki a stream URL-eket
+    if (/indavideo\.hu/i.test(videoUrl)) {
+      try {
+        const { streams, embedUrl } = await resolveIndavideoStreams(videoUrl);
+        if (streams && streams.length > 0) {
+          const qualities = streams.map(s => ({
+            height:   s.height,
+            label:    s.height ? s.height + 'p' : 'Legjobb',
+            directUrl: s.url,
+          }));
+          const result = { qualities, maxHeight: qualities[0].height, resolvedUrl: embedUrl, indavideoStreams: streams };
+          formatsCache.set(videoUrl, { formats: result, ts: Date.now() });
+          return resolve(result);
+        }
+        // Ha nem sikerült a direkt kinyerés, folytatjuk yt-dlp-vel (embedUrl-lel)
+        console.warn('[indavideo] direkt stream kinyerés sikertelen, yt-dlp fallback...');
+      } catch(e) {
+        console.error('[indavideo] stream kinyerési hiba:', e.message);
+      }
     }
 
     let ytdlpUrl = videoUrl;
@@ -120,26 +290,19 @@ function getFormats(videoUrl) {
         const info = JSON.parse(stdout);
         const fmts = info.formats || [];
 
-        // Gyűjtsük össze az elérhető video felbontásokat
         const seen = new Set();
         const qualities = [];
 
-        // Keressük a legjobb mp4/video-only + audio kombinációkat
         fmts
           .filter(f => f.height && f.height > 0 && (f.vcodec && f.vcodec !== 'none'))
           .sort((a, b) => b.height - a.height)
           .forEach(f => {
             if (!seen.has(f.height)) {
               seen.add(f.height);
-              qualities.push({
-                height: f.height,
-                label: f.height + 'p',
-                formatId: f.format_id,
-              });
+              qualities.push({ height: f.height, label: f.height + 'p', formatId: f.format_id });
             }
           });
 
-        // Ha nincs külön video track, próbáljuk a combined formátumokat
         if (qualities.length === 0) {
           fmts
             .filter(f => f.height && f.height > 0)
@@ -147,29 +310,18 @@ function getFormats(videoUrl) {
             .forEach(f => {
               if (!seen.has(f.height)) {
                 seen.add(f.height);
-                qualities.push({
-                  height: f.height,
-                  label: f.height + 'p',
-                  formatId: f.format_id,
-                });
+                qualities.push({ height: f.height, label: f.height + 'p', formatId: f.format_id });
               }
             });
         }
 
         if (qualities.length === 0) {
-          // Fallback: csak 1 "legjobb" opció
           qualities.push({ height: 0, label: 'Legjobb', formatId: 'best' });
         }
 
-        // Rendezzük csökkenő sorrendbe (legmagasabb elöl)
         qualities.sort((a, b) => b.height - a.height);
 
-        const result = {
-          qualities,
-          maxHeight: qualities[0].height,
-          resolvedUrl: ytdlpUrl,
-        };
-
+        const result = { qualities, maxHeight: qualities[0].height, resolvedUrl: ytdlpUrl };
         formatsCache.set(videoUrl, { formats: result, ts: Date.now() });
         resolve(result);
       } catch (e) {
@@ -189,18 +341,63 @@ function getDirectUrl(videoUrl, quality) {
       return resolve(cached.directUrl);
     }
 
+    // Indavideo: ha már van a formátum cache-ben közvetlen URL, azt használjuk
+    if (/indavideo\.hu/i.test(videoUrl)) {
+      const fmtCached = formatsCache.get(videoUrl);
+      if (fmtCached && fmtCached.formats && fmtCached.formats.indavideoStreams) {
+        const streams = fmtCached.formats.indavideoStreams;
+        let chosen = null;
+        if (quality && quality !== 'best') {
+          const h = parseInt(quality);
+          // Keressük a pontos egyezést, ha nincs, a legközelebbit alulról
+          chosen = streams.find(s => s.height === h)
+                || streams.filter(s => s.height <= h).sort((a,b) => b.height - a.height)[0]
+                || streams[0];
+        } else {
+          chosen = streams[0]; // legmagasabb
+        }
+        if (chosen) {
+          console.log('[indavideo] direkt URL visszaadva:', chosen.height + 'p', chosen.url.substring(0, 80));
+          urlCache.set(cacheKey, { directUrl: chosen.url, ts: Date.now() });
+          return resolve(chosen.url);
+        }
+      }
+
+      // Ha nincs cache, kérjük le újra
+      try {
+        const { streams } = await resolveIndavideoStreams(videoUrl);
+        if (streams && streams.length > 0) {
+          let chosen = null;
+          if (quality && quality !== 'best') {
+            const h = parseInt(quality);
+            chosen = streams.find(s => s.height === h)
+                  || streams.filter(s => s.height <= h).sort((a,b) => b.height - a.height)[0]
+                  || streams[0];
+          } else {
+            chosen = streams[0];
+          }
+          if (chosen) {
+            console.log('[indavideo] direkt URL (fresh):', chosen.height + 'p', chosen.url.substring(0, 80));
+            urlCache.set(cacheKey, { directUrl: chosen.url, ts: Date.now() });
+            return resolve(chosen.url);
+          }
+        }
+      } catch(e) {
+        console.error('[indavideo] direkt URL kinyerési hiba:', e.message, '— yt-dlp fallback');
+      }
+    }
+
     let ytdlpUrl = videoUrl;
     if (/indavideo\.hu\/video\//i.test(videoUrl)) {
       try { ytdlpUrl = await resolveIndavideoEmbedUrl(videoUrl); }
       catch (e) { return reject(e); }
     }
 
-    // Formátum selector: ha van konkrét height, kérjük azt vagy alatta a legjobbat
+    // Formátum selector
     let fmtSelector;
     if (quality && quality !== 'best') {
       const h = parseInt(quality);
       if (!isNaN(h)) {
-        // Legjobbat kérjük ezen a felbontáson (video+audio merge, vagy combined)
         fmtSelector = `bestvideo[height=${h}]+bestaudio/best[height=${h}]/bestvideo[height<=${h}]+bestaudio/best[height<=${h}]/best`;
       } else {
         fmtSelector = 'best';
@@ -216,7 +413,6 @@ function getDirectUrl(videoUrl, quality) {
         console.error('[yt-dlp] hiba:', stderr);
         return reject(stderr || err?.message || 'yt-dlp hiba');
       }
-      // Ha 2 sor jön (video + audio külön), az első sort adjuk vissza
       const directUrl = stdout.trim().split('\n')[0].trim();
       console.log('[yt-dlp] kinyert URL:', directUrl.substring(0, 100) + '...');
       urlCache.set(cacheKey, { directUrl, ts: Date.now() });
