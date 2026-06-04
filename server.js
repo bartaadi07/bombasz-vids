@@ -111,7 +111,7 @@ function getDirectUrl(videoUrl) {
       }
     }
 
-    const cmd = `${ytdlp} --no-playlist -f "b" --get-url "${ytdlpUrl}"`;
+    const cmd = `${ytdlp} --no-playlist -f "best[height>=720]/best" --get-url "${ytdlpUrl}"`;
     console.log('[yt-dlp] futtatás:', cmd);
     exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
       if (!stdout.trim()) {
