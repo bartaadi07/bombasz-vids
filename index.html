@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="hu">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -12,7 +11,6 @@
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
     <header>
         <div class="header-inner">
@@ -38,7 +36,6 @@
         </div>
         <div class="header-stripe"></div>
     </header>
-
     <main>
         <div id="noResults" class="no-results" style="display:none">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -47,208 +44,92 @@
             </svg>
             <span>Nincs találat</span>
         </div>
+        <div class="cards-grid" id="cardsGrid">
 
-        <!-- ══════════════════════════════════════════════════════════════
-             SAJÁT FORDÍTÁSOK SZEKCIÓ
-             Ide kerülnek a saját fordítású tartalmak.
-             Kártyákon: data-section="sajat"
-        ══════════════════════════════════════════════════════════════ -->
-        <section class="content-section" id="section-sajat">
-            <div class="section-header">
-                <div class="section-title-wrap">
-                    <span class="section-dot"></span>
-                    <h2 class="section-title">Saját Fordítások</h2>
+            <!-- CHAINSAW MAN -->
+            <div class="card" data-search="chainsaw man reze arc mappa akció anime film 2025"
+                onclick="openDetail('csm')">
+                <div class="card-poster poster-csm">
+                    <img src="covers/chainsaw.jpg" alt="Chainsaw Man cover" onerror="this.style.display='none'">
+                    <div class="poster-placeholder">
+                        <div class="poster-title-art">CHAINSAW<br>MAN</div>
+                    </div>
+                    <div class="poster-badge">Film</div>
+                    <div class="poster-year">2025</div>
                 </div>
-                <div class="section-line"></div>
-                <span class="section-count" id="count-sajat"></span>
+                <div class="card-info">
+                    <div class="card-title">Chainsaw Man the Movie: Reze Arc</div>
+                    <div class="card-subtitle"><em></em></div>
+                    <div class="card-tags">
+                        <span class="tag">Akció</span>
+                        <span class="tag">Anime</span>
+                    </div>
+                    <p class="card-desc">Chainsaw Man film.</p>
+                    <div class="card-sub-entry">
+                        <div class="sub-entry-label">
+                            <span class="sub-dot"></span>Magyar felirat
+                        </div>
+                        <a class="sub-file-btn" href="srt/chainsaw.srt" download onclick="event.stopPropagation()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="8 17 12 21 16 17" />
+                                <line x1="12" y1="12" x2="12" y2="21" />
+                                <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" />
+                            </svg>
+                            SRT
+                        </a>
+                    </div>
+                </div>
+                <template class="video-tracks">
+                    <track kind="subtitles" src="vtt/chainsaw.vtt" srclang="hu" label="Magyar" default>
+                </template>
             </div>
-            <div class="cards-grid" id="grid-sajat">
-
-                <!-- CHAINSAW MAN -->
-                <div class="card" data-section="sajat" data-search="chainsaw man reze arc mappa akció anime film 2025"
-                    onclick="openDetail('csm')">
-                    <div class="card-poster poster-csm">
-                        <img src="covers/chainsaw.jpg" alt="Chainsaw Man cover" onerror="this.style.display='none'">
-                        <div class="poster-placeholder">
-                            <div class="poster-title-art">CHAINSAW<br>MAN</div>
-                        </div>
-                        <div class="poster-badge">Film</div>
-                        <div class="poster-year">2025</div>
+            <div class="card" data-search="evangelion end of neon genesis gainax dráma anime film 1997"
+                onclick="openDetail('eva')">
+                <div class="card-poster poster-eva">
+                    <img src="covers/evangelion.jpg" alt="End of Evangelion cover" onerror="this.style.display='none'">
+                    <div class="poster-placeholder">
+                        <div class="poster-title-art">END OF<br>EVANGELION</div>
                     </div>
-                    <div class="card-info">
-                        <div class="card-title">Chainsaw Man the Movie: Reze Arc</div>
-                        <div class="card-subtitle"><em></em></div>
-                        <div class="card-tags">
-                            <span class="tag">Akció</span>
-                            <span class="tag">Anime</span>
-                        </div>
-                        <p class="card-desc">Chainsaw Man film.</p>
-                        <div class="card-sub-entry">
-                            <div class="sub-entry-label">
-                                <span class="sub-dot"></span>Magyar felirat
-                            </div>
-                            <a class="sub-file-btn" href="srt/chainsaw.srt" download onclick="event.stopPropagation()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="8 17 12 21 16 17" />
-                                    <line x1="12" y1="12" x2="12" y2="21" />
-                                    <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" />
-                                </svg>
-                                SRT
-                            </a>
-                        </div>
+                    <div class="poster-badge">Film</div>
+                    <div class="poster-year">1997</div>
+                </div>
+                <div class="card-info">
+                    <div class="card-title">The End of Evangelion</div>
+                    <div class="card-subtitle"><em>Neon Genesis Evangelion</em></div>
+                    <div class="card-tags">
+                        <span class="tag">Dráma</span>
+                        <span class="tag">Anime</span>
                     </div>
-                    <template class="video-tracks">
-                        <track kind="subtitles" src="vtt/chainsaw.vtt" srclang="hu" label="Magyar" default>
-                    </template>
+                    <p class="card-desc">Nem az én feliratom — időzítés javítva. Ha te vagy a fordító, keress fel!</p>
+                    <div class="card-sub-entry">
+                        <div class="sub-entry-label">
+                            <span class="sub-dot"></span>Magyar felirat
+                        </div>
+                        <a class="sub-file-btn" href="srt/end.of.evangelion.srt" download
+                            onclick="event.stopPropagation()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="8 17 12 21 16 17" />
+                                <line x1="12" y1="12" x2="12" y2="21" />
+                                <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" />
+                            </svg>
+                            SRT
+                        </a>
+                    </div>
                 </div>
-
-                <!-- ÚJ SAJÁT FORDÍTÁS IDE JÖN -->
-                <!-- Másold a fenti kártyát, módosítsd az adatokat, és add hozzá a detail.js-be is -->
-
-
-        </section>
-
-        <!-- ══════════════════════════════════════════════════════════════
-             EGYÉB SZEKCIÓ
-             Ide kerülnek az egyéb (nem saját) tartalmak.
-             Kártyákon: data-section="egyeb"
-        ══════════════════════════════════════════════════════════════ -->
-        <section class="content-section" id="section-egyeb">
-            <div class="section-header">
-                <div class="section-title-wrap">
-                    <span class="section-dot secondary"></span>
-                    <h2 class="section-title secondary">Egyéb</h2>
-                </div>
-                <div class="section-line"></div>
-                <span class="section-count" id="count-egyeb"></span>
+                <template class="video-tracks">
+                    <track kind="subtitles" src="vtt/end.of.evangelion.vtt" srclang="hu" label="Magyar" default>
+                </template>
             </div>
-            <div class="cards-grid" id="grid-egyeb">
-
-                <!-- END OF EVANGELION -->
-                <div class="card" data-section="egyeb"
-                    data-search="evangelion end of neon genesis gainax dráma anime film 1997"
-                    onclick="openDetail('eva')">
-                    <div class="card-poster poster-eva">
-                        <img src="covers/evangelion.jpg" alt="End of Evangelion cover"
-                            onerror="this.style.display='none'">
-                        <div class="poster-placeholder">
-                            <div class="poster-title-art">END OF<br>EVANGELION</div>
-                        </div>
-                        <div class="poster-badge">Film</div>
-                        <div class="poster-year">1997</div>
-                    </div>
-                    <div class="card-info">
-                        <div class="card-title">The End of Evangelion</div>
-                        <div class="card-subtitle"><em>Neon Genesis Evangelion</em></div>
-                        <div class="card-tags">
-                            <span class="tag">Dráma</span>
-                            <span class="tag">Anime</span>
-                        </div>
-                        <p class="card-desc">Nem az én feliratom — időzítés javítva. Ha te vagy a fordító, keress fel!
-                        </p>
-                        <div class="card-sub-entry">
-                            <div class="sub-entry-label">
-                                <span class="sub-dot"></span>Magyar felirat
-                            </div>
-                            <a class="sub-file-btn" href="srt/end.of.evangelion.srt" download
-                                onclick="event.stopPropagation()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="8 17 12 21 16 17" />
-                                    <line x1="12" y1="12" x2="12" y2="21" />
-                                    <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" />
-                                </svg>
-                                SRT
-                            </a>
-                        </div>
-                    </div>
-                    <template class="video-tracks">
-                        <track kind="subtitles" src="vtt/end.of.evangelion.vtt" srclang="hu" label="Magyar" default>
-                    </template>
-                </div>
-
-                <!-- ÚJ EGYÉB TARTALOM IDE JÖN -->
-
-                <!-- DUNGEON MESHI — 1 részes sorozat példa
-                <div class="card" data-section="sajat"
-                    data-search="dungeon meshi delicious in dungeon trigger fantasy anime sorozat 2024"
-                    onclick="openDetail('dungeon_meshi')">
-                    <div class="card-poster poster-dunmeshi">
-                        <img src="covers/dunmeshi.jpg" alt="Dungeon Meshi cover" onerror="this.style.display='none'">
-                        <div class="poster-placeholder">
-                            <div class="poster-title-art">DUNGEON<br>MESHI</div>
-                        </div>
-                        <div class="poster-badge series-badge">Sorozat</div>
-                        <div class="poster-year">2024</div>
-                    </div>
-                    <div class="card-info">
-                        <div class="card-title">Dungeon Meshi</div>
-                        <div class="card-subtitle"><em>Delicious in Dungeon</em></div>
-                        <div class="card-tags">
-                            <span class="tag">Fantasy</span>
-                            <span class="tag">Anime</span>
-                        </div>
-                        <p class="card-desc">Kaland, dungeon és szörnyek vacsorára.</p>
-                        <div class="card-sub-entry">
-                            <div class="sub-entry-label">
-                                <span class="sub-dot"></span>1 rész elérhető
-                            </div>
-                            <a class="sub-file-btn" href="srt/dunmeshi-ep01.srt" download
-                                onclick="event.stopPropagation()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="8 17 12 21 16 17" />
-                                    <line x1="12" y1="12" x2="12" y2="21" />
-                                    <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" />
-                                </svg>
-                                SRT
-                            </a>
-                        </div>
-                    </div>
-                </div> -->
-
-                <!-- death note -->
-                <div class="card" data-section="sajat"
-                    data-search="death note"
-                    onclick="openDetail('deathnote')">
-                    <div class="card-poster poster-deathnote">
-                        <img src="covers/deathnote.jpg" alt="Death Note" onerror="this.style.display='none'">
-                        <div class="poster-placeholder">
-                            <div class="poster-title-art">deathnote</div>
-                        </div>
-                        <div class="poster-badge series-badge">Sorozat</div>
-                        <div class="poster-year">2022</div>
-                    </div>
-                    <div class="card-info">
-                        <div class="card-title">Death Note</div>
-                        <div class="card-subtitle"><em>Death Note</em></div>
-                        <div class="card-tags">
-                            <span class="tag">Akció</span>
-                            <span class="tag">Anime</span>
-                        </div>
-                        <p class="card-desc"></p>
-                        <div class="card-sub-entry">
-                            <div class="sub-entry-label">
-                                <span class="sub-dot"></span>37 rész elérhető
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-            </div>
-        </section>
+        </div>
     </main>
-
     <footer>
         <div class="footer-inner">
             <span class="footer-logo">Bombasz<span>Vids</span></span>
             <div class="footer-mid">dc: bartaadi</div>
         </div>
     </footer>
-
-    <!-- ═══ DETAIL OVERLAY ═══ -->
     <div class="detail-overlay" id="detailOverlay">
         <div class="detail-page" id="detailPage">
             <div class="detail-hero" id="detailHero">
@@ -277,14 +158,7 @@
                     <div class="detail-sub-title" id="detailSubTitle"></div>
                     <p class="detail-desc" id="detailDesc"></p>
                     <div class="detail-meta-row" id="detailMeta"></div>
-
-                    <!-- Epizódok (csak sorozatnál jelenik meg) -->
-                    <div id="detailEpisodesSection" style="display:none">
-                        <div class="detail-section-label">Epizódok</div>
-                        <div class="episodes-grid" id="detailEpisodes"></div>
-                    </div>
-
-                    <div class="detail-section-label">Nyelv</div>
+                    <div class="detail-section-label">Elérhető feliratok</div>
                     <div class="detail-subs" id="detailSubs"></div>
                     <div class="detail-section-label">Videó forrás</div>
                     <div class="detail-source" id="detailSource"></div>
@@ -292,8 +166,6 @@
             </div>
         </div>
     </div>
-
-    <!-- ═══ PLAYER MODAL ═══ -->
     <div class="modal-overlay" id="playerModal">
         <div class="modal" id="playerModalInner">
             <div class="modal-body">
@@ -301,63 +173,28 @@
             </div>
         </div>
     </div>
-
     <script src="script.js"></script>
     <script src="detail.js"></script>
     <script>
-        // ─── Keresés ────────────────────────────────────────────────────
         const searchInput = document.getElementById('searchInput');
         const searchClear = document.getElementById('searchClear');
+        const cards = document.querySelectorAll('.card');
         const noResults = document.getElementById('noResults');
-
         function doSearch() {
             const q = searchInput.value.trim().toLowerCase();
             searchClear.style.opacity = q ? '1' : '0';
             searchClear.style.pointerEvents = q ? 'auto' : 'none';
-
-            const sections = ['sajat', 'egyeb'];
-            let totalVisible = 0;
-
-            sections.forEach(sec => {
-                const grid = document.getElementById('grid-' + sec);
-                const section = document.getElementById('section-' + sec);
-                const cards = grid.querySelectorAll('.card');
-                let visible = 0;
-
-                cards.forEach(card => {
-                    const haystack = card.dataset.search + ' ' + card.querySelector('.card-title').textContent.toLowerCase();
-                    const match = !q || haystack.includes(q);
-                    card.style.display = match ? '' : 'none';
-                    if (match) visible++;
-                });
-
-                // Szekció elrejtése ha 0 találat
-                section.style.display = visible === 0 ? 'none' : '';
-                totalVisible += visible;
-                updateCount(sec);
+            let visible = 0;
+            cards.forEach(card => {
+                const haystack = card.dataset.search + ' ' + card.querySelector('.card-title').textContent.toLowerCase();
+                const match = !q || haystack.includes(q);
+                card.style.display = match ? '' : 'none';
+                if (match) visible++;
             });
-
-            noResults.style.display = totalVisible === 0 ? 'flex' : 'none';
+            noResults.style.display = visible === 0 ? 'flex' : 'none';
         }
-
-        function updateCount(sec) {
-            const grid = document.getElementById('grid-' + sec);
-            const countEl = document.getElementById('count-' + sec);
-            if (!countEl) return;
-            const total = grid.querySelectorAll('.card').length;
-            const visible = grid.querySelectorAll('.card:not([style*="display: none"])').length;
-            countEl.textContent = total + ' cím';
-        }
-
         searchInput.addEventListener('input', doSearch);
-        searchClear.addEventListener('click', () => {
-            searchInput.value = '';
-            doSearch();
-            searchInput.focus();
-        });
-
-        // Init count
-        ['sajat', 'egyeb'].forEach(updateCount);
+        searchClear.addEventListener('click', () => { searchInput.value = ''; doSearch(); searchInput.focus(); });
 
         function openDetailAndPlay(id) {
             openDetail(id);
@@ -365,5 +202,4 @@
         }
     </script>
 </body>
-
 </html>
