@@ -583,6 +583,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === '/api/stream') {
+    // Ha ?direct=<url> van megadva, rögtön proxyzza (böngésző nyerte ki a tokent)
+    const directParam = url.searchParams.get('direct');
+    if (directParam) {
+      console.log('[proxy] direct mode:', directParam.substring(0, 80));
+      proxyStream(req, res, directParam, null, null);
+      return;
+    }
+
     const videoUrl = url.searchParams.get('url');
     const quality  = url.searchParams.get('quality') || null;
     if (!videoUrl) { res.writeHead(400); return res.end('Hiányzó url'); }
@@ -591,6 +599,29 @@ const server = http.createServer(async (req, res) => {
       proxyStream(req, res, directUrl, videoUrl, quality);
     } catch(e) {
       res.writeHead(500); res.end(String(e));
+    }
+    return;
+  }
+
+  // ── Indavideo embed HTML proxy (CORS bypass — a böngésző kéri, a szerver forwrdolja) ──
+  // A szerver csak visszaadja az embed HTML-t; a token kinyerés a böngészőben történik
+  if (url.pathname === '/api/indavideo-embed-proxy') {
+    const embedUrl = url.searchParams.get('url');
+    if (!embedUrl || !/embed\.indavideo\.hu/i.test(embedUrl)) {
+      res.writeHead(400); return res.end('Érvénytelen embed URL');
+    }
+    try {
+      const { html, status } = await fetchHtml(embedUrl, {
+        'Referer': 'https://indavideo.hu/',
+        'Origin':  'https://indavideo.hu',
+      });
+      res.writeHead(status, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+      });
+      res.end(html);
+    } catch(e) {
+      res.writeHead(502); res.end('Fetch hiba: ' + e.message);
     }
     return;
   }

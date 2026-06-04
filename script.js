@@ -12,6 +12,73 @@ let _currentVideoUrl = null;
 let _currentTrackTpl = null;
 let _currentApiBase  = null;
 
+// Indavideo stream-ek kinyerése böngészőben (magyar IP → magasabb minőség)
+function guessHeightFromUrl(url) {
+  const m = url.match(/[_\-\/](\d{3,4})[_\-\.]?(?:p|\.mp4)/i);
+  if (m) return parseInt(m[1]);
+  if (/1080/.test(url)) return 1080;
+  if (/720/.test(url)) return 720;
+  if (/480/.test(url)) return 480;
+  if (/360/.test(url)) return 360;
+  if (/hd/i.test(url)) return 720;
+  if (/sd/i.test(url)) return 360;
+  return 0;
+}
+
+function parseIndavideoStreams(html) {
+  const streams = [];
+  const m1 = html.match(/"videoUrls"\s*:\s*(\[[^\]]+\])/);
+  if (m1) {
+    try {
+      JSON.parse(m1[1]).forEach(u => {
+        if (u && typeof u === "string" && u.startsWith("http"))
+          streams.push({ url: u, height: guessHeightFromUrl(u) });
+      });
+    } catch(e) {}
+  }
+  const m2 = html.match(/PLAYER_FLASH_PARAMS\s*=\s*(\{[\s\S]*?\});/);
+  if (m2) {
+    try {
+      const fp = JSON.parse(m2[1]);
+      ["videoUrls","video_urls","files"].forEach(k => {
+        if (Array.isArray(fp[k])) fp[k].forEach(item => {
+          const u = typeof item === "string" ? item : (item.url || item.src || item.file);
+          if (u && u.startsWith("http") && !streams.find(s => s.url === u))
+            streams.push({ url: u, height: guessHeightFromUrl(u) });
+        });
+      });
+    } catch(e) {}
+  }
+  // Nyers CDN URL-ek
+  const cdnRe = /https?:\/\/[^\s"'<]*(?:iinda\.hu|indavideocdn\.hu)[^\s"'<]*\.mp4[^\s"'<]*/g;
+  for (const m of html.matchAll(cdnRe)) {
+    const u = m[0].replace(/\u0026/g, "&").replace(/\\/g, "");
+    if (!streams.find(s => s.url === u)) streams.push({ url: u, height: guessHeightFromUrl(u) });
+  }
+  return streams.sort((a, b) => b.height - a.height);
+}
+
+async function resolveIndavideoInBrowser(pageUrl, API_BASE) {
+  const slugM = pageUrl.match(/indavideo\.hu\/video\/([^/?#]+)/);
+  if (!slugM) return null;
+  const slug = slugM[1];
+  try {
+    const r = await fetch(API_BASE + "/api/indavideo-embed-proxy?url=" +
+      encodeURIComponent("https://embed.indavideo.hu/player/video/" + slug));
+    if (r.ok) {
+      const html = await r.text();
+      const streams = parseIndavideoStreams(html);
+      if (streams.length > 0) {
+        console.log("[indavideo-browser] talált stream-ek:", streams.map(s => s.height + "p"));
+        return streams;
+      }
+    }
+  } catch(e) {
+    console.warn("[indavideo-browser] proxy hiba:", e.message);
+  }
+  return null;
+}
+
 async function openPlayer(btn) {
   const videoUrl  = btn.getAttribute('data-url');
   const title     = btn.getAttribute('data-title');
@@ -19,7 +86,7 @@ async function openPlayer(btn) {
   const trackTpl  = card ? card.querySelector('template.video-tracks') : null;
 
   const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3000' 
+    ? 'http://localhost:3000'
     : 'https://api.bombasz.hu';
 
   _currentVideoUrl = videoUrl;
@@ -34,17 +101,43 @@ async function openPlayer(btn) {
   history.pushState({ playerOpen: true }, '');
 
   const container = document.getElementById('playerContainer');
-  container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Formátumok betöltése…</span></div>';
+  container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Betöltés…</span></div>';
 
   try {
-    // Először lekérjük az elérhető minőségeket
+    const isIndavideo = /indavideo\.hu/i.test(videoUrl);
+
+    if (isIndavideo) {
+      // Böngésző oldali kinyerés (magyar IP → magasabb minőség)
+      container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Indavideo stream kinyerése…</span></div>';
+      const browserStreams = await resolveIndavideoInBrowser(videoUrl, API_BASE);
+
+      if (browserStreams && browserStreams.length > 0) {
+        // Siker: felépítjük a quality listát direktben
+        _availableQualities = browserStreams.map(s => ({
+          height:    s.height,
+          label:     s.height ? s.height + 'p' : 'Legjobb',
+          directUrl: s.url,
+        }));
+        _currentQuality = String(_availableQualities[0].height || 'best');
+
+        container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Videó betöltése (' + _currentQuality + 'p)…</span></div>';
+
+        const bestStream = browserStreams[0];
+        const streamUrl  = API_BASE + '/api/stream?direct=' + encodeURIComponent(bestStream.url);
+        buildVideoPlayer(container, streamUrl, trackTpl);
+        return;
+      }
+      // Fallback: ha a böngésző oldali kinyerés sikertelen, normál flow
+      console.warn('[indavideo-browser] sikertelen, szerver fallback');
+    }
+
+    // Normál flow (videa.hu és minden más, + indavideo fallback)
     const fmtRes  = await fetch(API_BASE + '/api/formats?url=' + encodeURIComponent(videoUrl));
     const fmtData = await fmtRes.json();
 
     if (fmtData.error) throw new Error(fmtData.error);
 
     _availableQualities = fmtData.qualities || [];
-    // A legjobb (legmagasabb) minőség legyen az alapértelmezett
     _currentQuality = _availableQualities.length > 0 ? String(_availableQualities[0].height || 'best') : 'best';
 
     container.innerHTML = '<div class="player-loading"><div class="loading-spinner"></div><span>Videó betöltése (' + _currentQuality + 'p)…</span></div>';
@@ -57,6 +150,14 @@ async function openPlayer(btn) {
 }
 
 async function loadPlayerWithQuality(container, videoUrl, quality, trackTpl, API_BASE) {
+  // Ha az _availableQualities tartalmaz directUrl-t (indavideo böngésző kinyerés), azt használjuk
+  const qEntry = _availableQualities.find(q => String(q.height) === String(quality));
+  if (qEntry && qEntry.directUrl) {
+    const streamUrl = API_BASE + '/api/stream?direct=' + encodeURIComponent(qEntry.directUrl);
+    buildVideoPlayer(container, streamUrl, trackTpl);
+    return;
+  }
+
   const qParam = quality && quality !== 'best' ? '&quality=' + encodeURIComponent(quality) : '';
   const res    = await fetch(API_BASE + '/api/resolve?url=' + encodeURIComponent(videoUrl) + qParam);
   const data   = await res.json();
@@ -82,13 +183,21 @@ async function switchQuality(newQuality) {
   container.appendChild(loadingDiv);
 
   try {
-    const qParam = newQuality && newQuality !== 'best' ? '&quality=' + encodeURIComponent(newQuality) : '';
-    const res    = await fetch(_currentApiBase + '/api/resolve?url=' + encodeURIComponent(_currentVideoUrl) + qParam);
-    const data   = await res.json();
-    if (!data.proxyUrl) throw new Error(data.error || 'Ismeretlen hiba');
+    // Ha van directUrl (indavideo böngésző kinyerés), azt használjuk
+    const qEntry = _availableQualities.find(q => String(q.height) === String(newQuality));
+    let streamUrl;
+    if (qEntry && qEntry.directUrl) {
+      streamUrl = _currentApiBase + '/api/stream?direct=' + encodeURIComponent(qEntry.directUrl);
+    } else {
+      const qParam = newQuality && newQuality !== 'best' ? '&quality=' + encodeURIComponent(newQuality) : '';
+      const res    = await fetch(_currentApiBase + '/api/resolve?url=' + encodeURIComponent(_currentVideoUrl) + qParam);
+      const data   = await res.json();
+      if (!data.proxyUrl) throw new Error(data.error || 'Ismeretlen hiba');
+      streamUrl = _currentApiBase + data.proxyUrl;
+    }
 
     container.innerHTML = '';
-    buildVideoPlayer(container, _currentApiBase + data.proxyUrl, _currentTrackTpl, savedTime, wasPaused);
+    buildVideoPlayer(container, streamUrl, _currentTrackTpl, savedTime, wasPaused);
   } catch (err) {
     loadingDiv.remove();
     console.error('switchQuality hiba:', err);
