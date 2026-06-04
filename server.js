@@ -43,14 +43,75 @@ function isShortLivedToken(videoUrl) {
   return /indavideo\.hu/i.test(videoUrl);
 }
 
-function getDirectUrl(videoUrl) {
+// Indavideo.hu: az oldal URL-ből (video/SLUG) kinyeri az embed URL-t (player/video/HEX_ID)
+// Azért kell, mert a yt-dlp IndavideoIE extractorát eltávolították — csak IndavideoEmbedIE maradt.
+function resolveIndavideoEmbedUrl(pageUrl) {
   return new Promise((resolve, reject) => {
+    const parsed = new URL(pageUrl.startsWith('http') ? pageUrl : 'https://' + pageUrl);
+    const mod = parsed.protocol === 'https:' ? https : http;
+    const opts = {
+      hostname: parsed.hostname,
+      path:     parsed.pathname + parsed.search,
+      method:   'GET',
+      headers: {
+        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
+        'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'hu-HU,hu;q=0.9',
+      },
+    };
+    let html = '';
+    const req = mod.request(opts, (res) => {
+      if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307) && res.headers.location) {
+        res.resume();
+        return resolveIndavideoEmbedUrl(res.headers.location).then(resolve).catch(reject);
+      }
+      res.setEncoding('utf8');
+      res.on('data', chunk => html += chunk);
+      res.on('end', () => {
+        // Keresd az embed URL-t az oldalon
+        const patterns = [
+          /embed\.indavideo\.hu\/player\/video\/([a-f0-9]+)/,
+          /indavideo\.hu\/player\/video\/([a-f0-9]+)/,
+          /"video_id"\s*:\s*"([a-f0-9]+)"/,
+          /player\.indavideo\.hu[^"']*[?&]v(?:ID|id)=([a-f0-9]+)/,
+        ];
+        for (const pat of patterns) {
+          const m = html.match(pat);
+          if (m) {
+            const embedUrl = `https://embed.indavideo.hu/player/video/${m[1]}`;
+            console.log('[indavideo] embed URL kinyerve:', embedUrl);
+            return resolve(embedUrl);
+          }
+        }
+        reject(new Error('Nem találtam embed URL-t az oldalon: ' + pageUrl));
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout az oldal betöltésekor')); });
+    req.end();
+  });
+}
+
+function getDirectUrl(videoUrl) {
+  return new Promise(async (resolve, reject) => {
     const cached = urlCache.get(videoUrl);
     if (cached && !isShortLivedToken(videoUrl) && Date.now() - cached.ts < CACHE_TTL) {
       console.log('[cache] visszaadva:', cached.directUrl.substring(0, 80) + '...');
       return resolve(cached.directUrl);
     }
-    const cmd = `${ytdlp} --no-playlist -f "b" --get-url "${videoUrl}"`;
+
+    // Indavideo oldal URL → embed URL konverzió (yt-dlp csak embed URL-t tud kezelni)
+    let ytdlpUrl = videoUrl;
+    if (/indavideo\.hu\/video\//i.test(videoUrl)) {
+      try {
+        ytdlpUrl = await resolveIndavideoEmbedUrl(videoUrl);
+      } catch (e) {
+        console.error('[indavideo] embed URL kinyerés sikertelen:', e.message);
+        return reject(e);
+      }
+    }
+
+    const cmd = `${ytdlp} --no-playlist -f "b" --get-url "${ytdlpUrl}"`;
     console.log('[yt-dlp] futtatás:', cmd);
     exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
       if (!stdout.trim()) {
