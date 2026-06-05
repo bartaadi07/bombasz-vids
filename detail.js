@@ -50,7 +50,7 @@ const DETAIL_DATA = {
     ],
     sourceLabel: 'nyaa.si · videó forrás',
     sourceHref: 'https://nyaa.si/view/1408436',
-    playUrl: '//videa.hu/player?v=PgRnentyDxzjqCps',
+    playUrl: '//videa.hu/player?v=xbyFed1D3UsrQgNR',
     playTitle: 'End of Evangelion',
     trackSrc: 'vtt/end.of.evangelion.vtt',
     srtHref: 'srt/end.of.evangelion.srt',
