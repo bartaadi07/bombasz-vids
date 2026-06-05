@@ -120,12 +120,84 @@ main {
 }
 
 /* 3. A footer fixen a rugalmas konténer aljára kényszerül */
+/* --- FOOTER BEÁLLÍTÁSOK --- */
 footer {
-    flex-shrink: 0; /* Megakadályozza, hogy a footer összenyomódjon */
     width: 100%;
+    padding: 20px 0;
 }
+
+/* Ez a konténer kezeli a logót és a szövegblokkot */
+.footer-inner {
+    display: flex;
+    flex-direction: row; /* PC-n egymás mellett tartja a logót és a szövegblokkot */
+    align-items: center;
+    justify-content: center; /* PC-n középre teszi az egészet */
+    gap: 30px;
+}
+
+/* A szövegblokk (dc: bartaadi + letöltések) */
+.footer-mid {
+    display: flex;
+    flex-direction: row; /* A két szöveges elem egymás mellett */
+    gap: 15px;
+    white-space: nowrap;
+}
+
+/* A sortörés kényszerített eltüntetése */
+.footer-mid br {
+    display: none !important;
+}
+
+/* MOBIL NÉZET (480px alatt) */
+@media (max-width: 480px) {
+    .footer-inner {
+        flex-direction: column !important; /* Telefonon egymás alá pakolja a logót és a szöveget */
+        gap: 10px !important;
+    }
+}
+/* --- FOOTER GLOBÁLIS BEÁLLÍTÁSOK --- */
 footer {
-    padding-bottom: calc(12px + env(safe-area-inset-bottom)); /* Biztonságos távolság a telefonok aljától */
+    width: 100%;
+    padding: 20px 0; /* PC-n megmarad a normál méret */
+}
+
+.footer-inner {
+    display: flex;
+    flex-direction: row; 
+    align-items: center;
+    justify-content: flex-start; /* Logó bal oldalon PC-n */
+    padding-left: 20px;         
+    gap: 30px;
+}
+
+.footer-mid {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    white-space: nowrap;
+}
+
+.footer-mid br {
+    display: none !important;
+}
+
+/* --- MOBIL NÉZET (480px alatt) --- */
+@media (max-width: 480px) {
+    footer {
+        padding: 5px 0 !important; /* Itt vékonyítjuk el a footert */
+    }
+
+    .footer-inner {
+        flex-direction: column !important;
+        padding-left: 0 !important; /* Középre igazítás mobilra */
+        gap: 2px !important;       /* Minimális távolság a sorok között */
+    }
+
+    .footer-mid {
+        flex-direction: row !important;
+        gap: 10px !important;
+         /* Kicsit kisebb betűk, hogy biztos beférjen */
+    }
 }
     </style>
 </head>
@@ -196,7 +268,7 @@ footer {
         <footer>
             <div class="footer-inner">
                 <span class="footer-logo">Bombasz<span>Vids</span></span>
-                <div class="footer-mid">dc: bartaadi</div>
+                <div class="footer-mid">dc: bartaadi <br> <a style="color: rgb(192, 192, 192); text-decoration: none;" href="https://github.com/bartaadi07/bombasz-vids.exe/releases/" target="_blank">letöltések</a></div>
             </div>
         </footer>
     </div>
